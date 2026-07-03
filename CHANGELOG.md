@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.10 — 2026-07-03
+
+- Translated slug collision validation: a slug already used by other content — as a translated slug for the same language or as its real slug — is rejected on save, keeping the previous value, and reported with an admin notice linking to the colliding content.
+- The translations box re-checks stored slugs on every load and shows an inline warning for collisions that appeared afterwards (e.g. another post adopting that slug).
+
 ## 0.0.9 — 2026-07-03
 
 - The whole plugin is now in English: UI strings (source strings for translate.wordpress.org), code comments and developer docs. Spanish (and any other language) will arrive as regular language packs once the plugin is on WordPress.org.

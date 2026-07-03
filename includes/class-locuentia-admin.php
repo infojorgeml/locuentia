@@ -13,6 +13,50 @@ class Locuentia_Admin {
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_post' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'show_slug_collision_notice' ) );
+	}
+
+	/**
+	 * Shows the notice for translated slugs rejected on the last save.
+	 */
+	public static function show_slug_collision_notice() {
+		if ( function_exists( 'get_current_screen' ) ) {
+			$screen = get_current_screen();
+			if ( $screen && 'post' !== $screen->base ) {
+				return;
+			}
+		}
+
+		$key      = 'locuentia_slug_rejected_' . get_current_user_id();
+		$rejected = get_transient( $key );
+
+		if ( empty( $rejected ) || ! is_array( $rejected ) ) {
+			return;
+		}
+
+		delete_transient( $key );
+
+		echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Locuentia:', 'locuentia' ) . '</strong></p>';
+
+		foreach ( $rejected as $item ) {
+			$title = get_the_title( $item['with_id'] );
+			$title = '' !== $title ? $title : '#' . (int) $item['with_id'];
+			$link  = get_edit_post_link( $item['with_id'] );
+
+			$title_html = $link
+				? '<a href="' . esc_url( $link ) . '">' . esc_html( $title ) . '</a>'
+				: esc_html( $title );
+
+			echo '<p>' . sprintf(
+				/* translators: 1: rejected slug, 2: uppercase language code, 3: title of the colliding content. */
+				esc_html__( 'The translated slug “%1$s” (%2$s) was not saved: it is already in use by %3$s. Choose a different slug.', 'locuentia' ),
+				esc_html( $item['slug'] ),
+				esc_html( strtoupper( $item['lang'] ) ),
+				wp_kses( $title_html, array( 'a' => array( 'href' => array() ) ) )
+			) . '</p>';
+		}
+
+		echo '</div>';
 	}
 
 	/**
@@ -281,7 +325,22 @@ class Locuentia_Admin {
 			echo '<input type="text" class="regular-text" name="locuentia_slug[' . esc_attr( $lang ) . ']" value="' . esc_attr( $slug ) . '" placeholder="' . esc_attr( $post->post_name ) . '" />';
 			echo '</label><br /><span class="description">'
 				. esc_html( sprintf( /* translators: %s: language code. */ __( 'Changes the URL in this language, e.g. /%s/my-translated-slug/. Empty = same slug as the original.', 'locuentia' ), $lang ) )
-				. '</span></p>';
+				. '</span>';
+
+			// Collisions can appear after saving (another post adopting this
+			// slug), so the stored value is re-checked on every render.
+			$collision = '' !== $slug ? Locuentia::find_slug_collision( $slug, $lang, $post->ID ) : null;
+			if ( $collision ) {
+				echo '<br /><span class="locuentia-slug-warning">'
+					. sprintf(
+						/* translators: %s: title of the colliding content. */
+						esc_html__( 'Warning: this slug is also in use by “%s”, which becomes unreachable in this language. Consider changing it.', 'locuentia' ),
+						esc_html( $collision->post_title )
+					)
+					. '</span>';
+			}
+
+			echo '</p>';
 
 			echo '<table class="widefat striped">';
 			echo '<thead><tr>';
@@ -365,6 +424,7 @@ class Locuentia_Admin {
 		if ( isset( $_POST['locuentia_slug'] ) && is_array( $_POST['locuentia_slug'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized with sanitize_title() in the loop below.
 			$raw_slugs = wp_unslash( $_POST['locuentia_slug'] );
+			$rejected  = array();
 
 			foreach ( $languages as $lang ) {
 				if ( ! isset( $raw_slugs[ $lang ] ) || ! is_string( $raw_slugs[ $lang ] ) ) {
@@ -376,9 +436,26 @@ class Locuentia_Admin {
 
 				if ( '' === $slug ) {
 					delete_post_meta( $post_id, $meta_key );
-				} else {
-					update_post_meta( $post_id, $meta_key, $slug );
+					continue;
 				}
+
+				// A colliding slug is rejected (the previous value, if any,
+				// is kept) and reported via an admin notice.
+				$collision = Locuentia::find_slug_collision( $slug, $lang, $post_id );
+				if ( $collision ) {
+					$rejected[] = array(
+						'lang'    => $lang,
+						'slug'    => $slug,
+						'with_id' => $collision->ID,
+					);
+					continue;
+				}
+
+				update_post_meta( $post_id, $meta_key, $slug );
+			}
+
+			if ( ! empty( $rejected ) ) {
+				set_transient( 'locuentia_slug_rejected_' . get_current_user_id(), $rejected, 5 * MINUTE_IN_SECONDS );
 			}
 		}
 	}

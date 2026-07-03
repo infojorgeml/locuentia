@@ -38,7 +38,7 @@ Empty fields show the original text (you do not need to translate everything).
 - If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.
 - The original language always lives at the unprefixed URL (there is no `/es/` route for the source).
 - On hierarchical pages only the page's own slug is translated; ancestor segments keep their original slug.
-- Translated slugs are not validated against collisions with other content: when two collide, the translated one wins.
+- Translated slugs are validated against collisions when saving from the editor (colliding slugs are rejected with an admin notice, and the translations box warns about collisions that appear afterwards). Slugs written directly to the database are not re-validated until the post is edited again.
 
 Uninstalling the plugin removes the language options and every stored translation.
 

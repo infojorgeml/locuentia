@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.9
+Stable tag: 0.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,7 @@ Each text is identified by a hash of its normalized version, so detection in the
 * Translations are plain text (no HTML).
 * The original language always lives at the unprefixed URL.
 * If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.
+* Translated slugs are validated against collisions when saving from the editor; slugs written directly to the database are not re-validated until the post is edited again.
 
 == Installation ==
 
@@ -66,6 +67,9 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.10 =
+* Translated slugs are now validated on save: a slug already used by other content is rejected with an explanatory admin notice, and the translations box warns about collisions that appear afterwards.
 
 = 0.0.9 =
 * The whole plugin is now in English (UI source strings, code comments and docs), ready for language packs via translate.wordpress.org.

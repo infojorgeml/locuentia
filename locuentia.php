@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.9
+ * Version:           0.0.10
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.9' );
+define( 'LOCUENTIA_VERSION', '0.0.10' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -138,6 +138,57 @@ final class Locuentia {
 	 */
 	public static function get_translated_slug( $post_id, $lang ) {
 		return (string) get_post_meta( $post_id, self::SLUG_META_PREFIX . $lang, true );
+	}
+
+	/**
+	 * Finds content colliding with a translated slug for a language.
+	 *
+	 * A collision is another post using the slug either as its translated
+	 * slug for the same language, or as its real slug (which the translated
+	 * slug would hide under /lang/slug/, since translated slugs win).
+	 *
+	 * @param string $slug            Candidate translated slug.
+	 * @param string $lang            Language code.
+	 * @param int    $exclude_post_id Post being edited (excluded from the search).
+	 * @return WP_Post|null The colliding post, or null when the slug is free.
+	 */
+	public static function find_slug_collision( $slug, $lang, $exclude_post_id ) {
+		$slug = sanitize_title( $slug );
+		if ( '' === $slug ) {
+			return null;
+		}
+
+		$statuses = array( 'publish', 'future', 'private' );
+
+		$found = get_posts(
+			array(
+				'post_type'      => self::post_types(),
+				'post_status'    => $statuses,
+				'posts_per_page' => 1,
+				'post__not_in'   => array( (int) $exclude_post_id ),
+				// Targeted lookup on an indexed key, capped at 1 result.
+				'meta_key'       => self::SLUG_META_PREFIX . $lang, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'     => $slug, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'no_found_rows'  => true,
+			)
+		);
+
+		if ( ! empty( $found ) ) {
+			return $found[0];
+		}
+
+		$found = get_posts(
+			array(
+				'post_type'      => self::post_types(),
+				'post_status'    => $statuses,
+				'posts_per_page' => 1,
+				'post__not_in'   => array( (int) $exclude_post_id ),
+				'post_name__in'  => array( $slug ),
+				'no_found_rows'  => true,
+			)
+		);
+
+		return ! empty( $found ) ? $found[0] : null;
 	}
 
 	/**
