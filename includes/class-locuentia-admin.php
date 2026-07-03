@@ -8,6 +8,9 @@ defined( 'ABSPATH' ) || exit;
 class Locuentia_Admin {
 
 	public static function init() {
+		require_once LOCUENTIA_DIR . 'includes/class-locuentia-translator.php';
+		Locuentia_Translator::init();
+
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'register_settings_page' ) );
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
@@ -69,10 +72,17 @@ class Locuentia_Admin {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post ) {
-			return;
+		if ( $post ) {
+			self::render_progress_badges( $post );
 		}
+	}
 
+	/**
+	 * Prints one progress badge per language for a post: translated/total texts.
+	 *
+	 * @param WP_Post $post Post.
+	 */
+	public static function render_progress_badges( $post ) {
 		$strings = self::detect_strings( $post );
 		$total   = count( $strings );
 
@@ -83,7 +93,7 @@ class Locuentia_Admin {
 
 		foreach ( Locuentia::get_languages() as $lang ) {
 			// Only translations whose hash still matches a current text count.
-			$done = count( array_intersect_key( Locuentia::get_post_translations( $post_id, $lang ), $strings ) );
+			$done = count( array_intersect_key( Locuentia::get_post_translations( $post->ID, $lang ), $strings ) );
 
 			if ( $done >= $total ) {
 				$state = 'full';
@@ -109,7 +119,7 @@ class Locuentia_Admin {
 	public static function show_slug_collision_notice() {
 		if ( function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
-			if ( $screen && 'post' !== $screen->base ) {
+			if ( $screen && ! in_array( $screen->base, array( 'post', 'toplevel_page_locuentia' ), true ) ) {
 				return;
 			}
 		}
@@ -152,7 +162,7 @@ class Locuentia_Admin {
 	 * @param string $hook_suffix Current admin screen.
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php', 'edit.php' ), true ) ) {
+		if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php', 'edit.php', 'toplevel_page_locuentia' ), true ) ) {
 			return;
 		}
 
@@ -242,14 +252,34 @@ class Locuentia_Admin {
 	}
 
 	public static function register_settings_page() {
+		// The top-level page is the translation queue (the everyday tool);
+		// settings live in a submenu.
 		add_menu_page(
 			__( 'Locuentia', 'locuentia' ),
 			__( 'Locuentia', 'locuentia' ),
-			'manage_options',
+			'edit_posts',
 			'locuentia',
-			array( __CLASS__, 'render_settings_page' ),
+			array( 'Locuentia_Translator', 'render_page' ),
 			'dashicons-translation',
 			80
+		);
+
+		add_submenu_page(
+			'locuentia',
+			__( 'Translate', 'locuentia' ),
+			__( 'Translate', 'locuentia' ),
+			'edit_posts',
+			'locuentia',
+			array( 'Locuentia_Translator', 'render_page' )
+		);
+
+		add_submenu_page(
+			'locuentia',
+			__( 'Settings', 'locuentia' ),
+			__( 'Settings', 'locuentia' ),
+			'manage_options',
+			'locuentia-settings',
+			array( __CLASS__, 'render_settings_page' )
 		);
 	}
 
@@ -486,74 +516,110 @@ class Locuentia_Admin {
 			return;
 		}
 
-		$languages = Locuentia::get_languages();
-
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in the loop below.
-			$raw   = wp_unslash( $_POST['locuentia_tr'] );
-			$clean = array();
-
-			foreach ( $raw as $lang => $items ) {
-				$lang = Locuentia::sanitize_language_code( $lang );
-				if ( '' === $lang || ! in_array( $lang, $languages, true ) || ! is_array( $items ) ) {
-					continue;
-				}
-
-				foreach ( $items as $hash => $value ) {
-					if ( ! is_string( $value ) || ! preg_match( '/^[a-f0-9]{32}$/', (string) $hash ) ) {
-						continue;
-					}
-
-					$value = sanitize_textarea_field( $value );
-					if ( '' !== $value ) {
-						$clean[ $lang ][ $hash ] = $value;
-					}
-				}
-			}
-
-			if ( empty( $clean ) ) {
-				delete_post_meta( $post_id, Locuentia::META_KEY );
-			} else {
-				update_post_meta( $post_id, Locuentia::META_KEY, $clean );
-			}
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_translations().
+			self::update_translations( $post_id, wp_unslash( $_POST['locuentia_tr'] ) );
 		}
 
 		if ( isset( $_POST['locuentia_slug'] ) && is_array( $_POST['locuentia_slug'] ) ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized with sanitize_title() in the loop below.
-			$raw_slugs = wp_unslash( $_POST['locuentia_slug'] );
-			$rejected  = array();
-
-			foreach ( $languages as $lang ) {
-				if ( ! isset( $raw_slugs[ $lang ] ) || ! is_string( $raw_slugs[ $lang ] ) ) {
-					continue;
-				}
-
-				$slug     = sanitize_title( $raw_slugs[ $lang ] );
-				$meta_key = Locuentia::SLUG_META_PREFIX . $lang;
-
-				if ( '' === $slug ) {
-					delete_post_meta( $post_id, $meta_key );
-					continue;
-				}
-
-				// A colliding slug is rejected (the previous value, if any,
-				// is kept) and reported via an admin notice.
-				$collision = Locuentia::find_slug_collision( $slug, $lang, $post_id );
-				if ( $collision ) {
-					$rejected[] = array(
-						'lang'    => $lang,
-						'slug'    => $slug,
-						'with_id' => $collision->ID,
-					);
-					continue;
-				}
-
-				update_post_meta( $post_id, $meta_key, $slug );
-			}
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized with sanitize_title() in update_translated_slugs().
+			$rejected = self::update_translated_slugs( $post_id, wp_unslash( $_POST['locuentia_slug'] ) );
 
 			if ( ! empty( $rejected ) ) {
 				set_transient( 'locuentia_slug_rejected_' . get_current_user_id(), $rejected, 5 * MINUTE_IN_SECONDS );
 			}
 		}
+	}
+
+	/**
+	 * Sanitizes and stores submitted translations, merging per language:
+	 * only the languages present in the input are rebuilt, the rest keep
+	 * their stored values (allows saving a single language at a time).
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $raw     Unslashed input: lang => ( hash => text ).
+	 */
+	public static function update_translations( $post_id, array $raw ) {
+		$languages = Locuentia::get_languages();
+
+		$data = get_post_meta( $post_id, Locuentia::META_KEY, true );
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+
+		foreach ( $raw as $lang => $items ) {
+			$lang = Locuentia::sanitize_language_code( $lang );
+			if ( '' === $lang || ! in_array( $lang, $languages, true ) || ! is_array( $items ) ) {
+				continue;
+			}
+
+			$clean = array();
+
+			foreach ( $items as $hash => $value ) {
+				if ( ! is_string( $value ) || ! preg_match( '/^[a-f0-9]{32}$/', (string) $hash ) ) {
+					continue;
+				}
+
+				$value = sanitize_textarea_field( $value );
+				if ( '' !== $value ) {
+					$clean[ $hash ] = $value;
+				}
+			}
+
+			if ( empty( $clean ) ) {
+				unset( $data[ $lang ] );
+			} else {
+				$data[ $lang ] = $clean;
+			}
+		}
+
+		if ( empty( $data ) ) {
+			delete_post_meta( $post_id, Locuentia::META_KEY );
+		} else {
+			update_post_meta( $post_id, Locuentia::META_KEY, $data );
+		}
+	}
+
+	/**
+	 * Sanitizes and stores submitted translated slugs (one meta per language,
+	 * only for the languages present in the input), rejecting collisions.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $raw     Unslashed input: lang => slug.
+	 * @return array Rejected slugs: array of ( lang, slug, with_id ).
+	 */
+	public static function update_translated_slugs( $post_id, array $raw ) {
+		$languages = Locuentia::get_languages();
+		$rejected  = array();
+
+		foreach ( $languages as $lang ) {
+			if ( ! isset( $raw[ $lang ] ) || ! is_string( $raw[ $lang ] ) ) {
+				continue;
+			}
+
+			$slug     = sanitize_title( $raw[ $lang ] );
+			$meta_key = Locuentia::SLUG_META_PREFIX . $lang;
+
+			if ( '' === $slug ) {
+				delete_post_meta( $post_id, $meta_key );
+				continue;
+			}
+
+			// A colliding slug is rejected (the previous value, if any,
+			// is kept) and reported via an admin notice.
+			$collision = Locuentia::find_slug_collision( $slug, $lang, $post_id );
+			if ( $collision ) {
+				$rejected[] = array(
+					'lang'    => $lang,
+					'slug'    => $slug,
+					'with_id' => $collision->ID,
+				);
+				continue;
+			}
+
+			update_post_meta( $post_id, $meta_key, $slug );
+		}
+
+		return $rejected;
 	}
 }

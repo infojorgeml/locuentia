@@ -7,8 +7,8 @@ Minimal manual translations for WordPress. No builders, no visual editors: it de
 ## How to use it
 
 1. Activate the plugin.
-2. Go to **Locuentia** (its own sidebar menu): set the language your content is written in (for example `es`; empty = the site language) and the comma-separated target languages (default: `en`). The same page documents the switcher shortcode.
-3. Edit any post or page: the **Translations** box below the editor lists every detected text (title, manual excerpt and image `alt` texts included) with one field per language. Each language also has an optional **Translated slug** field so the URL gets translated too (`/en/about-us/` instead of `/en/sobre-nosotros/`).
+2. Go to **Locuentia → Settings**: set the language your content is written in (for example `es`; empty = the site language) and the comma-separated target languages (default: `en`). The same page documents the switcher shortcode.
+3. Translate from **Locuentia → Translate** — a queue of your content with per-language progress and a focused full-width editor (one language at a time) — or from the **Translations** box below the editor of any post or page. Both list every detected text (title, manual excerpt and image `alt` texts included) with one field per language, plus an optional **Translated slug** field so the URL gets translated too (`/en/about-us/` instead of `/en/sobre-nosotros/`).
 4. Save. The translated page lives at the language-prefixed URL, for example:
    `https://mysite.local/en/my-page/` (and the home page at `https://mysite.local/en/`).
    `?locuentia_lang=CODE` also works, and is the only mode when the site does not use pretty permalinks.

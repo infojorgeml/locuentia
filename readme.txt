@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.12
+Stable tag: 0.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,6 +24,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 * `hreflang` tags on every URL, announcing only languages that actually have translations.
 * Per-language sitemaps integrated into the native WordPress sitemaps (`wp-sitemap-locuentia-en-1.xml`).
 * Translation progress column in the post and page lists: see at a glance what is translated, per language.
+* A dedicated Translate screen: a queue of your content with its progress, and a focused full-width editor to translate one language at a time.
 * Configurable source language, independent from the site locale.
 * Clean uninstall: removes all options and stored translations.
 
@@ -43,8 +44,8 @@ Each text is identified by a hash of its normalized version, so detection in the
 == Installation ==
 
 1. Install and activate the plugin.
-2. Go to **Settings → Locuentia**: set the language your content is written in (for example `es`) and the target languages, comma separated (for example `en, fr`).
-3. Edit any post or page and fill in the **Translations** box below the editor.
+2. Go to **Locuentia → Settings**: set the language your content is written in (for example `es`) and the target languages, comma separated (for example `en, fr`).
+3. Translate from the **Locuentia → Translate** screen (a queue of your content with a focused editor), or from the **Translations** box below the editor of any post or page.
 4. Visit the translated URL, for example `/en/my-page/`. Optionally place the `[locuentia_switcher]` shortcode wherever you want a language switcher — being a shortcode it works in any editor or builder (Gutenberg, Elementor, Bricks, classic widgets).
 
 The switcher supports display options: `style` (list, inline or dropdown), `show` (native language name or code), `hide_current`, `separator` and `original_label`. For example: `[locuentia_switcher style="dropdown"]`. The full reference lives in the Locuentia admin page.
@@ -68,6 +69,11 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.13 =
+* New Translate screen: a queue of all translatable content with per-language progress, and a focused full-width editor (same fields as the meta box, one language at a time, with tabs).
+* The Locuentia menu now opens the Translate screen; settings moved to the Locuentia → Settings submenu.
+* Saving now merges per language, so saving one language never touches the others.
 
 = 0.0.12 =
 * Translation progress column in the post and page list tables, with one badge per language (translated/total texts).

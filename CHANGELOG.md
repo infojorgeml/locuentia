@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.13 — 2026-07-03
+
+- **Translate screen** (new top-level view of the Locuentia menu): a queue of all translatable content with per-language progress badges and pagination, plus a focused full-width editor per post — same fields and saving pipeline as the meta box, one language at a time with tabs, translated slug included.
+- Settings moved to the **Locuentia → Settings** submenu; the Translate screen is available to editors (`edit_posts`), settings remain admin-only.
+- Translation saving now merges per language: saving one language never touches the others (needed by the new screen, harmless for the meta box).
+
 ## 0.0.12 — 2026-07-03
 
 - **Translation progress column** in the post and page list tables: one badge per language with translated/total texts (green complete, amber partial, gray untouched), counting only translations whose text still exists in the content.

@@ -1,10 +1,20 @@
-/* Locuentia translations box in the editor. */
-#locuentia th.locuentia-col-original {
+/* Locuentia translations box in the editor and Translate screen. */
+#locuentia th.locuentia-col-original,
+.locuentia-translator th.locuentia-col-original {
 	width: 50%;
 }
 
-#locuentia textarea {
+#locuentia textarea,
+.locuentia-translator textarea {
 	width: 100%;
+}
+
+.locuentia-translator .nav-tab-wrapper {
+	margin-bottom: 1em;
+}
+
+.locuentia-pagination {
+	margin-top: 1em;
 }
 
 #locuentia .locuentia-slug-warning {
