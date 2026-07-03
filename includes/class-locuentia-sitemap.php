@@ -1,13 +1,13 @@
 <?php
 /**
- * Proveedor de sitemap para las URLs traducidas.
+ * Sitemap provider for the translated URLs.
  *
- * Se acopla a los sitemaps nativos de WordPress (wp-sitemap.xml) añadiendo
- * un sitemap por idioma: wp-sitemap-locuentia-en-1.xml, con la portada
- * del idioma y el contenido que tiene traducciones guardadas (el mismo
- * criterio que las etiquetas hreflang).
+ * Plugs into the native WordPress sitemaps (wp-sitemap.xml) adding one
+ * sitemap per language: wp-sitemap-locuentia-en-1.xml, with the language
+ * home page and the content that has stored translations (the same
+ * criterion as the hreflang tags).
  *
- * Este archivo se carga bajo demanda desde el hook wp_sitemaps_init.
+ * This file is loaded on demand from the wp_sitemaps_init hook.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,7 +20,7 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Un subtipo de sitemap por idioma con traducciones en el sitio.
+	 * One sitemap subtype per language with translations on the site.
 	 *
 	 * @return object[]
 	 */
@@ -35,10 +35,10 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * URLs de una página del sitemap de un idioma.
+	 * URLs of one page of a language sitemap.
 	 *
-	 * @param int    $page_num       Número de página del sitemap.
-	 * @param string $object_subtype Código de idioma.
+	 * @param int    $page_num       Sitemap page number.
+	 * @param string $object_subtype Language code.
 	 * @return array[]
 	 */
 	public function get_url_list( $page_num, $object_subtype = '' ) {
@@ -54,9 +54,9 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Número de páginas del sitemap de un idioma.
+	 * Number of sitemap pages of a language.
 	 *
-	 * @param string $object_subtype Código de idioma.
+	 * @param string $object_subtype Language code.
 	 * @return int
 	 */
 	public function get_max_num_pages( $object_subtype = '' ) {
@@ -69,10 +69,10 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Valida que el subtipo sea un idioma configurado.
+	 * Validates that the subtype is a language in use.
 	 *
-	 * @param string $object_subtype Código recibido en la URL del sitemap.
-	 * @return string Código válido o ''.
+	 * @param string $object_subtype Code received in the sitemap URL.
+	 * @return string Valid code, or ''.
 	 */
 	private function validate_language( $object_subtype ) {
 		$lang = Locuentia::sanitize_language_code( $object_subtype );
@@ -85,10 +85,10 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Todas las URLs de un idioma: portada + contenido con traducciones.
-	 * Se calcula una vez por idioma y petición.
+	 * All URLs of a language: home page + content with translations.
+	 * Computed once per language and request.
 	 *
-	 * @param string $lang Código de idioma.
+	 * @param string $lang Language code.
 	 * @return array[]
 	 */
 	private function get_language_urls( $lang ) {
@@ -109,7 +109,7 @@ class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 				'has_password'   => false,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
-				// EXISTS sobre clave indexada: solo posts con traducciones.
+				// EXISTS on an indexed key: only posts with translations.
 				'meta_key'       => Locuentia::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_compare'   => 'EXISTS',
 				'orderby'        => 'ID',

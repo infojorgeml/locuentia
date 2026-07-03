@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.8
+ * Version:           0.0.9
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.8' );
+define( 'LOCUENTIA_VERSION', '0.0.9' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -43,7 +43,7 @@ final class Locuentia {
 	}
 
 	/**
-	 * Tipos de contenido donde se ofrecen traducciones.
+	 * Post types where translations are offered.
 	 *
 	 * @return string[]
 	 */
@@ -52,10 +52,11 @@ final class Locuentia {
 	}
 
 	/**
-	 * Idioma del contenido original (código, p. ej. 'es').
+	 * Language of the original content (code, e.g. 'es').
 	 *
-	 * Configurable en ajustes; por defecto se deriva del locale del sitio,
-	 * que no siempre coincide con el idioma en que está escrito el contenido.
+	 * Configurable in settings; by default it is derived from the site
+	 * locale, which does not always match the language the content is
+	 * actually written in.
 	 *
 	 * @return string
 	 */
@@ -70,11 +71,11 @@ final class Locuentia {
 	}
 
 	/**
-	 * Idiomas de destino configurados, p. ej. array( 'en', 'fr' ).
+	 * Configured target languages, e.g. array( 'en', 'fr' ).
 	 *
-	 * Excluye el idioma original: su contenido ya vive en las URLs sin
-	 * prefijo, y duplicarlo bajo /xx/ generaría contenido clonado y
-	 * etiquetas hreflang repetidas.
+	 * Excludes the original language: its content already lives at the
+	 * unprefixed URLs, and duplicating it under /xx/ would create cloned
+	 * content and repeated hreflang entries.
 	 *
 	 * @return string[]
 	 */
@@ -94,9 +95,9 @@ final class Locuentia {
 	}
 
 	/**
-	 * Normaliza un código de idioma (en, pt-br, …). Devuelve '' si no es válido.
+	 * Normalizes a language code (en, pt-br, …). Returns '' when invalid.
 	 *
-	 * @param string $code Código propuesto.
+	 * @param string $code Proposed code.
 	 * @return string
 	 */
 	public static function sanitize_language_code( $code ) {
@@ -112,10 +113,10 @@ final class Locuentia {
 	}
 
 	/**
-	 * Traducciones guardadas de un post para un idioma: array( hash => texto ).
+	 * Stored translations of a post for a language: array( hash => text ).
 	 *
-	 * @param int    $post_id ID del post.
-	 * @param string $lang    Código de idioma.
+	 * @param int    $post_id Post ID.
+	 * @param string $lang    Language code.
 	 * @return array
 	 */
 	public static function get_post_translations( $post_id, $lang ) {
@@ -129,10 +130,10 @@ final class Locuentia {
 	}
 
 	/**
-	 * Slug traducido de un post para un idioma ('' si no tiene).
+	 * Translated slug of a post for a language ('' when it has none).
 	 *
-	 * @param int    $post_id ID del post.
-	 * @param string $lang    Código de idioma.
+	 * @param int    $post_id Post ID.
+	 * @param string $lang    Language code.
 	 * @return string
 	 */
 	public static function get_translated_slug( $post_id, $lang ) {
@@ -140,9 +141,9 @@ final class Locuentia {
 	}
 
 	/**
-	 * Nombres nativos de los idiomas más comunes (código ISO 639-1 => nombre).
+	 * Native names of the most common languages (ISO 639-1 code => name).
 	 *
-	 * Ampliable/modificable con el filtro locuentia_language_names.
+	 * Extensible/overridable via the locuentia_language_names filter.
 	 *
 	 * @return array
 	 */
@@ -224,10 +225,10 @@ final class Locuentia {
 	}
 
 	/**
-	 * Etiqueta de un idioma para el selector.
+	 * Label of a language for the switcher.
 	 *
-	 * @param string $code Código de idioma.
-	 * @param string $show 'name' (nombre nativo) o 'code' (código en mayúsculas).
+	 * @param string $code Language code.
+	 * @param string $show 'name' (native name) or 'code' (uppercase code).
 	 * @return string
 	 */
 	public static function language_label( $code, $show = 'name' ) {
@@ -241,10 +242,10 @@ final class Locuentia {
 	}
 
 	/**
-	 * Idiomas de destino con alguna traducción guardada en el sitio.
+	 * Target languages that have at least one stored translation on the site.
 	 *
-	 * Se usa para no anunciar (hreflang, sitemap) idiomas vacíos, cuyas URLs
-	 * mostrarían contenido idéntico al original.
+	 * Used to avoid announcing (hreflang, sitemap) empty languages, whose
+	 * URLs would show content identical to the original.
 	 *
 	 * @return string[]
 	 */
@@ -263,7 +264,7 @@ final class Locuentia {
 				'post_status'    => 'publish',
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
-				// EXISTS sobre clave indexada: solo posts con traducciones.
+				// EXISTS on an indexed key: only posts with translations.
 				'meta_key'       => self::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_compare'   => 'EXISTS',
 				'no_found_rows'  => true,
@@ -288,9 +289,9 @@ final class Locuentia {
 	}
 
 	/**
-	 * Añade a los sitemaps nativos un sitemap por idioma con las URLs traducidas.
+	 * Adds a per-language sitemap with the translated URLs to the native sitemaps.
 	 *
-	 * @param WP_Sitemaps $sitemaps Servidor de sitemaps de WordPress.
+	 * @param WP_Sitemaps $sitemaps WordPress sitemaps server.
 	 */
 	public static function register_sitemap_provider( $sitemaps ) {
 		if ( empty( self::get_languages() ) || ! isset( $sitemaps->registry ) ) {
@@ -303,15 +304,15 @@ final class Locuentia {
 	}
 
 	/**
-	 * Al activar: programa la regeneración de las reglas de reescritura para
-	 * la próxima carga, cuando el plugin ya esté inicializado.
+	 * On activation: schedule the rewrite rules regeneration for the next
+	 * load, once the plugin is fully initialized.
 	 */
 	public static function activate() {
 		update_option( Locuentia_Router::FLUSH_FLAG, 1 );
 	}
 
 	/**
-	 * Al desactivar: regenera las reglas sin las variantes de idioma.
+	 * On deactivation: regenerate the rules without the language variants.
 	 */
 	public static function deactivate() {
 		remove_filter( 'rewrite_rules_array', array( 'Locuentia_Router', 'add_language_rules' ) );

@@ -1,57 +1,61 @@
 # Changelog
 
+## 0.0.9 — 2026-07-03
+
+- The whole plugin is now in English: UI strings (source strings for translate.wordpress.org), code comments and developer docs. Spanish (and any other language) will arrive as regular language packs once the plugin is on WordPress.org.
+
 ## 0.0.8 — 2026-07-03
 
-- Locuentia tiene ahora su propio menú en la barra lateral del admin (icono de traducción), en vez de vivir bajo Ajustes.
-- La página de admin documenta el shortcode del selector con todos sus atributos y ejemplos.
-- Selector de idioma con opciones de visualización: `style` (list, inline, dropdown), `show` (nombre nativo o código), `hide_current`, `separator` y `original_label`.
-- El selector muestra por defecto el nombre nativo de cada idioma (Español, English, Українська…) con un mapa de ~70 idiomas ampliable vía el filtro `locuentia_language_names`.
-- El modo dropdown navega al cambiar (JS mínimo encolado solo cuando se usa).
+- Locuentia now has its own top-level admin menu (translation icon) instead of living under Settings.
+- The admin page documents the switcher shortcode with all its attributes and examples.
+- Language switcher display options: `style` (list, inline, dropdown), `show` (native name or code), `hide_current`, `separator` and `original_label`.
+- The switcher shows the native name of each language by default (Español, English, Українська…) with a map of ~70 languages, extensible via the `locuentia_language_names` filter.
+- The dropdown mode navigates on change (minimal JS enqueued only when used).
 
 ## 0.0.7 — 2026-07-03
 
-- Se traduce el **extracto manual**: aparece como un texto más en la caja de traducciones y se sirve traducido en listados y feeds. El extracto automático ya se generaba del contenido traducido.
-- Se traducen los **textos alternativos (`alt`) de las imágenes** del contenido: se detectan como un texto más y se sustituyen en el atributo al servir la página.
-- Nuevo flujo de releases: `bin/build-zip.sh` genera `releases/locuentia-<versión>.zip` (un ZIP limpio por versión). `Contributors: jorgemml` en el readme.
+- The **manual excerpt** is translatable: it shows up as one more text in the translations box and is served translated on listings and feeds. The automatic excerpt was already generated from the translated content.
+- **Image `alt` texts** in the content are detected as one more text and replaced when serving the page.
+- New release flow: `bin/build-zip.sh` builds `releases/locuentia-<version>.zip` (one clean ZIP per version). `Contributors: jorgemml` in the readme.
 
 ## 0.0.6 — 2026-07-03
 
-- Renombrado a **Locuentia** (antes prototipo "Simple Translate"), siguiendo las guías del directorio de WordPress.org: nombre distintivo y prefijo único `locuentia_` en todas las clases, opciones, metas, shortcode y query var.
-- La query var pública pasa de `lang` a `locuentia_lang` (evita colisiones con otros plugins de idiomas). Las URLs `/en/…` no cambian.
-- El sitemap por idioma pasa a `wp-sitemap-locuentia-{idioma}-1.xml`.
-- Estilos del selector y del metabox movidos a hojas encoladas (`assets/css/`), sin estilos inline.
-- Sanitización formal de `REQUEST_URI` y anotaciones PHPCS justificadas; se elimina la cabecera `Update URI`.
-- Nuevo `readme.txt` en inglés (formato WordPress.org), licencia GPL-2.0 en el repo, y `bin/build-zip.sh` que genera `dist/locuentia.zip` limpio para el envío.
+- Renamed to **Locuentia** (formerly the "Simple Translate" prototype), following the WordPress.org directory guidelines: distinctive name and unique `locuentia_` prefix across classes, options, metas, shortcode and query var.
+- The public query var went from `lang` to `locuentia_lang` (avoids collisions with other language plugins). The `/en/…` URLs do not change.
+- The per-language sitemap moved to `wp-sitemap-locuentia-{language}-1.xml`.
+- Switcher and meta box styles moved to enqueued stylesheets (`assets/css/`), no inline styles.
+- Formal sanitization of `REQUEST_URI` and justified PHPCS annotations; the `Update URI` header was removed.
+- New English `readme.txt` (WordPress.org format), GPL-2.0 license in the repo, and `bin/build-zip.sh` to build the clean submission ZIP.
 
 ## 0.0.5 — 2026-07-03
 
-- Sitemap por idioma integrado en los sitemaps nativos de WordPress: `wp-sitemap.xml` incluye ahora `wp-sitemap-translations-{idioma}-1.xml`.
-- Cada sitemap de idioma lista la portada del idioma y el contenido con traducciones guardadas (mismo criterio que hreflang), con el slug traducido y `lastmod`.
-- El contenido sin traducciones, protegido con contraseña o no publicado se excluye.
+- Per-language sitemap integrated into the native WordPress sitemaps: `wp-sitemap.xml` now includes `wp-sitemap-locuentia-{language}-1.xml`.
+- Each language sitemap lists the language home page and the content with stored translations (same criterion as hreflang), with the translated slug and `lastmod`.
+- Content without translations, password-protected or unpublished is excluded.
 
 ## 0.0.4 — 2026-07-03
 
-- Slugs traducidos: campo «Slug traducido» por idioma en la caja de traducciones; la URL pasa de `/en/sobre-nosotros/` a `/en/about-us/`.
-- El slug sin traducir bajo prefijo (`/en/sobre-nosotros/`) redirige 301 a la URL con slug traducido.
-- Enlaces internos, hreflang, switcher y redirecciones canónicas usan el slug traducido.
-- En páginas jerárquicas se traduce el slug propio; los de las páginas ancestro se mantienen.
+- Translated slugs: a "Translated slug" field per language in the translations box; the URL goes from `/en/sobre-nosotros/` to `/en/about-us/`.
+- The untranslated slug under a prefix (`/en/sobre-nosotros/`) 301-redirects to the URL with the translated slug.
+- Internal links, hreflang, switcher and canonical redirects use the translated slug.
+- On hierarchical pages the page's own slug is translated; ancestor slugs are kept.
 
 ## 0.0.3 — 2026-07-03
 
-- Etiquetas `hreflang` en el `<head>`: cada URL anuncia su versión original, sus traducciones y `x-default`.
-- En entradas/páginas solo se anuncian los idiomas que tienen alguna traducción guardada (no se anuncian versiones idénticas al original).
-- Nuevo ajuste «Idioma del contenido original»: por defecto se deriva del idioma del sitio, pero es configurable porque no siempre coinciden (por ejemplo, un WordPress instalado en inglés con contenido en español).
-- Si un idioma de destino coincide con el original, se ignora: el original ya vive sin prefijo, y duplicarlo bajo `/xx/` crearía contenido clonado y hreflang repetidos.
+- `hreflang` tags in the `<head>`: every URL announces its original version, its translations and `x-default`.
+- On posts/pages only languages with at least one stored translation are announced (no versions identical to the original are announced).
+- New "Original content language" setting: derived from the site language by default, but configurable because they do not always match (for example, a WordPress installed in English with Spanish content).
+- A target language equal to the original is ignored: the original already lives unprefixed, and duplicating it under `/xx/` would create cloned content and repeated hreflang entries.
 
 ## 0.0.2 — 2026-07-03
 
-- URLs con prefijo de idioma: `/en/mi-pagina/`, `/en/` para la portada (requiere enlaces permanentes bonitos).
-- Los enlaces internos (menús de páginas, listados, permalinks) conservan el idioma mientras navegas.
-- Las redirecciones canónicas de WordPress respetan el prefijo de idioma.
-- El selector `[locuentia_switcher]` enlaza a las URLs bonitas.
-- `?lang=xx` sigue funcionando como alternativa (y como único modo si no hay enlaces permanentes bonitos).
-- Las reglas de reescritura se regeneran solas al activar/desactivar el plugin o cambiar los idiomas.
+- Language-prefixed URLs: `/en/my-page/`, `/en/` for the home page (pretty permalinks required).
+- Internal links (page menus, listings, permalinks) keep the language while browsing.
+- WordPress canonical redirects respect the language prefix.
+- The `[locuentia_switcher]` selector links to the pretty URLs.
+- The query parameter keeps working as a fallback (and as the only mode without pretty permalinks).
+- Rewrite rules regenerate themselves when activating/deactivating the plugin or changing the languages.
 
 ## 0.0.1 — 2026-07-03
 
-- Versión inicial: detección de textos traducibles (título y contenido), campos de traducción en un metabox del editor, sustitución en el frontend vía `?lang=xx`, página de ajustes de idiomas, shortcode de selector y desinstalación limpia.
+- Initial version: translatable text detection (title and content), translation fields in an editor meta box, front-end replacement via query parameter, language settings page, switcher shortcode and clean uninstall.

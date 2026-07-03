@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 #
-# Genera releases/locuentia-<version>.zip totalmente limpio: contenido de
-# git archive en HEAD, sin archivos de desarrollo (export-ignore de
-# .gitattributes), carpeta raíz interna = locuentia/.
+# Builds releases/locuentia-<version>.zip, fully clean: git archive of
+# HEAD, no development files (export-ignore entries in .gitattributes),
+# internal root folder = locuentia/.
 #
-# La versión se lee de la cabecera de locuentia.php, así cada release
-# deja su propio ZIP para probar en producción y pasar Plugin Check.
+# The version is read from the locuentia.php header, so every release
+# leaves its own ZIP to test in production and run Plugin Check against.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 VERSION=$(sed -n 's/^ \* Version:[[:space:]]*//p' locuentia.php | head -1 | tr -d '[:space:]')
 if [ -z "$VERSION" ]; then
-	echo "ERROR: no se pudo leer la versión de locuentia.php" >&2
+	echo "ERROR: could not read the version from locuentia.php" >&2
 	exit 1
 fi
 
 if [ -n "$(git status --porcelain)" ]; then
-	echo "AVISO: hay cambios sin commitear; el ZIP se genera desde el último commit (HEAD)."
+	echo "WARNING: there are uncommitted changes; the ZIP is built from the last commit (HEAD)."
 fi
 
 mkdir -p releases
@@ -26,7 +26,7 @@ rm -f "$OUT"
 
 git archive --format=zip --prefix=locuentia/ -o "$OUT" HEAD
 
-echo "Generado: $OUT"
+echo "Built: $OUT"
 unzip -l "$OUT"
 echo
-echo "Recuerda: para el envío inicial a WordPress.org el archivo debe llamarse exactamente locuentia.zip (cópialo renombrado)."
+echo "Reminder: for the initial WordPress.org submission the file must be named exactly locuentia.zip (copy it renamed)."

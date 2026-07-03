@@ -1,11 +1,11 @@
 <?php
 /**
- * Extracción y sustitución de textos traducibles en HTML.
+ * Extraction and replacement of translatable texts in HTML.
  *
- * Solo usa DOM (sin funciones de WordPress) para poder probarla de forma aislada.
- * Cada texto se identifica por el hash MD5 de su versión normalizada, de modo
- * que la detección en el editor y la sustitución en el frontend coincidan
- * aunque cambien espacios, entidades o la tipografía de wptexturize.
+ * Uses DOM only (no WordPress functions) so it can be tested in isolation.
+ * Each text is identified by the MD5 hash of its normalized version, so
+ * detection in the editor and replacement on the front end match even when
+ * whitespace, entities or wptexturize typography differ.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -13,17 +13,17 @@ defined( 'ABSPATH' ) || exit;
 class Locuentia_Detector {
 
 	/**
-	 * Normaliza un texto para identificarlo de forma estable.
+	 * Normalizes a text so it can be identified in a stable way.
 	 *
-	 * @param string $text Texto original.
+	 * @param string $text Original text.
 	 * @return string
 	 */
 	public static function normalize_text( $text ) {
 		$text = html_entity_decode( (string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-		// Neutraliza las transformaciones tipográficas de wptexturize (comillas
-		// curvas, guiones largos, nbsp…) para que el hash sea el mismo antes y
-		// después de renderizar el contenido.
+		// Neutralize wptexturize typographic transformations (curly quotes,
+		// long dashes, nbsp…) so the hash is the same before and after the
+		// content is rendered.
 		$text = strtr(
 			$text,
 			array(
@@ -47,9 +47,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Identificador estable de un texto.
+	 * Stable identifier of a text.
 	 *
-	 * @param string $text Texto original.
+	 * @param string $text Original text.
 	 * @return string
 	 */
 	public static function hash_text( $text ) {
@@ -57,9 +57,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Un texto es traducible si contiene al menos una letra.
+	 * A text is translatable when it contains at least one letter.
 	 *
-	 * @param string $text Texto ya normalizado.
+	 * @param string $text Already normalized text.
 	 * @return bool
 	 */
 	public static function is_translatable( $text ) {
@@ -67,9 +67,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Devuelve los textos traducibles de un HTML: array( hash => texto ).
+	 * Returns the translatable texts of an HTML fragment: array( hash => text ).
 	 *
-	 * @param string $html Fragmento HTML.
+	 * @param string $html HTML fragment.
 	 * @return array
 	 */
 	public static function extract_strings( $html ) {
@@ -98,10 +98,10 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Sustituye en el HTML los textos que tengan traducción.
+	 * Replaces in the HTML the texts that have a translation.
 	 *
-	 * @param string $html Fragmento HTML.
-	 * @param array  $map  Traducciones: array( hash => texto traducido ).
+	 * @param string $html HTML fragment.
+	 * @param array  $map  Translations: array( hash => translated text ).
 	 * @return string
 	 */
 	public static function translate_html( $html, $map ) {
@@ -127,8 +127,8 @@ class Locuentia_Detector {
 				continue;
 			}
 
-			// Conserva el espacio en blanco de los extremos para no pegar
-			// palabras con el texto de los nodos vecinos.
+			// Preserve leading/trailing whitespace so words do not get glued
+			// to the text of neighboring nodes.
 			$prefix = preg_match( '/^\s+/u', $node->nodeValue, $m_pre ) ? $m_pre[0] : '';
 			$suffix = preg_match( '/\s+$/u', $node->nodeValue, $m_suf ) ? $m_suf[0] : '';
 
@@ -161,9 +161,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Carga un fragmento HTML en un DOMDocument (UTF-8).
+	 * Loads an HTML fragment into a DOMDocument (UTF-8).
 	 *
-	 * @param string $html Fragmento HTML.
+	 * @param string $html HTML fragment.
 	 * @return DOMDocument|null
 	 */
 	private static function load_dom( $html ) {
@@ -187,9 +187,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Imágenes del contenido con atributo alt no vacío.
+	 * Content images with a non-empty alt attribute.
 	 *
-	 * @param DOMDocument $dom Documento cargado.
+	 * @param DOMDocument $dom Loaded document.
 	 * @return DOMNodeList|array
 	 */
 	private static function image_alts( DOMDocument $dom ) {
@@ -200,9 +200,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Nodos de texto del contenido, excluyendo bloques que no deben traducirse.
+	 * Content text nodes, excluding blocks that must not be translated.
 	 *
-	 * @param DOMDocument $dom Documento cargado.
+	 * @param DOMDocument $dom Loaded document.
 	 * @return DOMNodeList|array
 	 */
 	private static function text_nodes( DOMDocument $dom ) {
@@ -215,9 +215,9 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * Serializa de vuelta solo el contenido del <body> (el fragmento original).
+	 * Serializes back only the <body> contents (the original fragment).
 	 *
-	 * @param DOMDocument $dom Documento cargado.
+	 * @param DOMDocument $dom Loaded document.
 	 * @return string|null
 	 */
 	private static function serialize_body( DOMDocument $dom ) {

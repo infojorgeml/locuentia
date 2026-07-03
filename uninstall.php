@@ -1,6 +1,6 @@
 <?php
 /**
- * Limpieza al desinstalar: elimina la opción y todas las traducciones guardadas.
+ * Uninstall cleanup: removes the options and every stored translation.
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -12,10 +12,10 @@ delete_option( 'locuentia_source_language' );
 delete_option( 'locuentia_flush_rewrite' );
 delete_post_meta_by_key( '_locuentia_translations' );
 
-// Slugs traducidos: un meta por idioma (_locuentia_slug_en, …),
-// incluidos los de idiomas que ya no estén configurados. Borrado masivo
-// único en desinstalación; no hay API de alto nivel para LIKE ni caché
-// que invalidar después.
+// Translated slugs: one meta per language (_locuentia_slug_en, …),
+// including languages no longer configured. One-off bulk delete on
+// uninstall; there is no high-level API for LIKE and no cache to
+// invalidate afterwards.
 global $wpdb;
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query(

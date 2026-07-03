@@ -1,4 +1,4 @@
-# Archivos de desarrollo excluidos del ZIP de distribución (git archive).
+# Development files excluded from the distribution ZIP (git archive).
 .gitattributes export-ignore
 .gitignore export-ignore
 .github export-ignore

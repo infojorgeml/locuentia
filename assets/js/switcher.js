@@ -1,4 +1,4 @@
-/* Selector de idioma de Locuentia en modo dropdown: navega al cambiar. */
+/* Locuentia language switcher in dropdown mode: navigate on change. */
 document.addEventListener( 'change', function ( event ) {
 	var select = event.target;
 

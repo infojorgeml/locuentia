@@ -1,49 +1,49 @@
 # Locuentia – Multilingual Translations
 
-Traducción manual mínima para WordPress. Sin builders, sin editores visuales: detecta los textos de cada entrada o página y te da un campo por texto e idioma en el propio editor.
+Minimal manual translations for WordPress. No builders, no visual editors: it detects the texts of each post or page and gives you one field per text and language, right in the editor.
 
-> Este README es la documentación de desarrollo (en español). El `readme.txt` en inglés es el que consume el directorio de WordPress.org.
+> This README is the development documentation. The `readme.txt` file is the one consumed by the WordPress.org directory.
 
-## Cómo se usa
+## How to use it
 
-1. Activa el plugin.
-2. Ve a **Locuentia** (menú propio en la barra lateral): indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`). La misma página documenta el shortcode del selector.
-3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título, extracto manual y textos `alt` de las imágenes incluidos) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
-4. Guarda. La página traducida vive en la URL con prefijo de idioma, por ejemplo:
-   `https://misitio.local/en/mi-pagina/` (y la portada en `https://misitio.local/en/`).
-   También funciona `?locuentia_lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
-5. Opcional: coloca el shortcode `[locuentia_switcher]` donde quieras el selector de idioma. Al ser un shortcode funciona en cualquier builder (Gutenberg, Elementor, Bricks, widgets clásicos). Admite `style="list|inline|dropdown"`, `show="name|code"` (nombre nativo o código), `hide_current="yes"`, `separator="|"` y `original_label="…"`; el elemento activo lleva la clase `locuentia-current`.
+1. Activate the plugin.
+2. Go to **Locuentia** (its own sidebar menu): set the language your content is written in (for example `es`; empty = the site language) and the comma-separated target languages (default: `en`). The same page documents the switcher shortcode.
+3. Edit any post or page: the **Translations** box below the editor lists every detected text (title, manual excerpt and image `alt` texts included) with one field per language. Each language also has an optional **Translated slug** field so the URL gets translated too (`/en/about-us/` instead of `/en/sobre-nosotros/`).
+4. Save. The translated page lives at the language-prefixed URL, for example:
+   `https://mysite.local/en/my-page/` (and the home page at `https://mysite.local/en/`).
+   `?locuentia_lang=CODE` also works, and is the only mode when the site does not use pretty permalinks.
+5. Optional: place the `[locuentia_switcher]` shortcode wherever you want the language switcher. Being a shortcode it works in any builder (Gutenberg, Elementor, Bricks, classic widgets). It supports `style="list|inline|dropdown"`, `show="name|code"` (native name or code), `hide_current="yes"`, `separator="|"` and `original_label="…"`; the active item carries the `locuentia-current` class.
 
-Mientras navegas dentro de `/en/…`, los enlaces internos (menús de páginas, listados) mantienen el prefijo, así que la navegación se queda en ese idioma.
+While browsing inside `/en/…`, internal links (page menus, listings) keep the prefix, so navigation stays in that language.
 
-Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
+Empty fields show the original text (you do not need to translate everything).
 
-## Cómo funciona
+## How it works
 
-- Los textos se detectan recorriendo los nodos de texto y los atributos `alt` de las imágenes del contenido guardado (se ignoran `script`, `style`, `code` y `pre`, y los fragmentos sin letras, como números sueltos).
-- El extracto manual se traduce como un texto más; el extracto automático ya se genera a partir del contenido traducido.
-- Cada texto se identifica por un hash de su versión normalizada (espacios y tipografía unificados), y las traducciones se guardan como texto plano en el post meta `_locuentia_translations`.
-- Las URLs de idioma se resuelven duplicando las reglas de reescritura de WordPress bajo cada prefijo (`/en/…`); las reglas se regeneran solas al activar el plugin o cambiar los idiomas. Si alguna URL de idioma diera 404, guarda en Ajustes → Enlaces permanentes para regenerarlas a mano.
-- Cada URL emite etiquetas `hreflang` (original, traducciones y `x-default`). En contenido individual solo se anuncian los idiomas con alguna traducción guardada. Un idioma de destino igual al original se ignora para no duplicar contenido.
-- Los slugs traducidos se guardan en un meta por idioma (`_locuentia_slug_en`, …). La URL con el slug original bajo prefijo redirige 301 a la traducida, y los enlaces internos, hreflang y switcher usan siempre el slug traducido.
-- El sitemap nativo (`wp-sitemap.xml`) incluye un sitemap por idioma (`wp-sitemap-locuentia-en-1.xml`) con la portada del idioma y el contenido que tiene traducciones, usando los slugs traducidos. Requiere los sitemaps nativos de WordPress activos (los plugins SEO tipo Yoast los sustituyen por los suyos).
-- Con un idioma activo se filtran `the_title` y `the_content` sustituyendo cada texto por su traducción, y los permalinks se prefijan para mantener la navegación en ese idioma.
-- Por defecto funciona en entradas y páginas; se puede ampliar con el filtro `locuentia_post_types`.
+- Texts are detected by walking the text nodes and the image `alt` attributes of the saved content (`script`, `style`, `code` and `pre` are ignored, as are fragments without letters, such as bare numbers).
+- The manual excerpt is translated as one more text; the automatic excerpt is already generated from the translated content.
+- Each text is identified by a hash of its normalized version (unified whitespace and typography), and translations are stored as plain text in the `_locuentia_translations` post meta.
+- Language URLs are resolved by duplicating the WordPress rewrite rules under each prefix (`/en/…`); the rules regenerate themselves when the plugin is activated or the languages change. If a language URL ever 404s, save Settings → Permalinks to regenerate them manually.
+- Every URL outputs `hreflang` tags (original, translations and `x-default`). On singular content only languages with a stored translation are announced. A target language equal to the original is ignored to avoid duplicated content.
+- Translated slugs are stored in one meta per language (`_locuentia_slug_en`, …). The URL with the original slug under a prefix 301-redirects to the translated one, and internal links, hreflang and the switcher always use the translated slug.
+- The native sitemap (`wp-sitemap.xml`) includes one sitemap per language (`wp-sitemap-locuentia-en-1.xml`) with the language home page and the content that has translations, using the translated slugs. Requires the native WordPress sitemaps to be active (SEO plugins like Yoast replace them with their own).
+- With an active language, `the_title` and `the_content` are filtered replacing each text with its translation, and permalinks are prefixed to keep navigation in that language.
+- By default it works on posts and pages; extensible via the `locuentia_post_types` filter.
 
-## Limitaciones (a propósito, para mantenerlo simple)
+## Limitations (on purpose, to keep it simple)
 
-- Solo traduce el título, el contenido, el extracto manual y los `alt` de las imágenes del contenido (incluido el `<title>` de la pestaña): no traduce menús ni navegación, widgets, textos del tema, el `alt` de la imagen destacada ni salidas de shortcodes/bloques dinámicos.
-- El texto con formato interno (negritas, enlaces) se divide en fragmentos: cada fragmento se traduce por separado.
-- Las traducciones son texto plano (sin HTML).
-- Si cambias un texto del contenido, su traducción anterior deja de aplicarse: guarda, recarga el editor y rellena el campo del texto nuevo.
-- El idioma original siempre va sin prefijo (no hay ruta `/es/` para el origen).
-- En páginas jerárquicas solo se traduce el slug propio de cada página; los segmentos de las páginas ancestro mantienen su slug original.
-- No se valida que un slug traducido no colisione con el de otro contenido: si dos coinciden, gana el traducido.
+- Only the title, content, manual excerpt and in-content image `alt` texts are translated (including the browser tab `<title>`): menus and navigation, widgets, theme strings, the featured image `alt` and dynamic shortcode/block output are not.
+- Text with inline formatting (bold, links) is split into fragments: each fragment is translated separately.
+- Translations are plain text (no HTML).
+- If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.
+- The original language always lives at the unprefixed URL (there is no `/es/` route for the source).
+- On hierarchical pages only the page's own slug is translated; ancestor segments keep their original slug.
+- Translated slugs are not validated against collisions with other content: when two collide, the translated one wins.
 
-Al desinstalar el plugin se borran la opción de idiomas y todas las traducciones guardadas.
+Uninstalling the plugin removes the language options and every stored translation.
 
-## Desarrollo
+## Development
 
-- Repo: [github.com/infojorgeml/locuentia](https://github.com/infojorgeml/locuentia). Licencia GPL-2.0.
-- `bin/build-zip.sh` genera `releases/locuentia-<versión>.zip` totalmente limpio (sin archivos de desarrollo, vía los `export-ignore` de `.gitattributes`); un ZIP por versión para probar en producción. La carpeta `releases/` no se versiona.
-- Antes de cada release: pasar [Plugin Check](https://wordpress.org/plugins/plugin-check/) sobre el ZIP generado. Para el envío inicial a WordPress.org, renombrar el ZIP a `locuentia.zip`.
+- Repo: [github.com/infojorgeml/locuentia](https://github.com/infojorgeml/locuentia). GPL-2.0 license.
+- `bin/build-zip.sh` builds a fully clean `releases/locuentia-<version>.zip` (no development files, via the `export-ignore` entries in `.gitattributes`); one ZIP per version to test in production. The `releases/` folder is not versioned.
+- Before every release: run [Plugin Check](https://wordpress.org/plugins/plugin-check/) against the built ZIP. For the initial WordPress.org submission, rename the ZIP to `locuentia.zip`.

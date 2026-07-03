@@ -1,6 +1,6 @@
 <?php
 /**
- * Backend: página de ajustes y caja de traducciones en el editor.
+ * Backend: settings page and translations box in the editor.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -16,9 +16,9 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Estilos de la caja de traducciones, solo en las pantallas de edición.
+	 * Translations box styles, only on the edit screens.
 	 *
-	 * @param string $hook_suffix Pantalla de admin actual.
+	 * @param string $hook_suffix Current admin screen.
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
 		if ( 'post.php' !== $hook_suffix && 'post-new.php' !== $hook_suffix ) {
@@ -33,7 +33,7 @@ class Locuentia_Admin {
 		);
 	}
 
-	/* ---------- Ajustes ---------- */
+	/* ---------- Settings ---------- */
 
 	public static function register_settings() {
 		register_setting(
@@ -60,7 +60,7 @@ class Locuentia_Admin {
 
 		add_settings_field(
 			'locuentia_source',
-			__( 'Idioma del contenido original', 'locuentia' ),
+			__( 'Original content language', 'locuentia' ),
 			array( __CLASS__, 'render_source_field' ),
 			'locuentia',
 			'locuentia_main'
@@ -68,7 +68,7 @@ class Locuentia_Admin {
 
 		add_settings_field(
 			'locuentia_languages',
-			__( 'Idiomas de destino', 'locuentia' ),
+			__( 'Target languages', 'locuentia' ),
 			array( __CLASS__, 'render_languages_field' ),
 			'locuentia',
 			'locuentia_main'
@@ -79,14 +79,14 @@ class Locuentia_Admin {
 		$value = get_option( Locuentia::OPTION_SOURCE, '' );
 		?>
 		<input type="text" class="small-text" name="<?php echo esc_attr( Locuentia::OPTION_SOURCE ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( Locuentia::original_language() ); ?>" />
-		<p class="description"><?php esc_html_e( 'Código del idioma en que escribes el contenido (por ejemplo: es). Si se deja vacío se usa el idioma del sitio. Se emplea en las etiquetas hreflang y evita duplicar el original bajo /xx/.', 'locuentia' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Code of the language your content is written in (for example: es). Leave empty to use the site language. Used in the hreflang tags, and a target language equal to it is ignored to avoid duplicated content under /xx/.', 'locuentia' ); ?></p>
 		<?php
 	}
 
 	/**
-	 * Deja la opción como una lista limpia de códigos: "en, fr".
+	 * Stores the option as a clean list of codes: "en, fr".
 	 *
-	 * @param string $value Valor enviado.
+	 * @param string $value Submitted value.
 	 * @return string
 	 */
 	public static function sanitize_languages_option( $value ) {
@@ -106,7 +106,7 @@ class Locuentia_Admin {
 		$value = get_option( Locuentia::OPTION_LANGUAGES, 'en' );
 		?>
 		<input type="text" class="regular-text" name="<?php echo esc_attr( Locuentia::OPTION_LANGUAGES ); ?>" value="<?php echo esc_attr( $value ); ?>" />
-		<p class="description"><?php esc_html_e( 'Códigos de idioma separados por comas, por ejemplo: en, fr, de.', 'locuentia' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Comma-separated language codes, for example: en, fr, de.', 'locuentia' ); ?></p>
 		<?php
 	}
 
@@ -140,59 +140,59 @@ class Locuentia_Admin {
 
 			<hr />
 
-			<h2><?php esc_html_e( 'Cómo se traducen los contenidos', 'locuentia' ); ?></h2>
-			<p><?php esc_html_e( 'Las traducciones se rellenan al editar cada entrada o página (caja «Traducciones» bajo el editor) y se sirven en URLs con prefijo de idioma, por ejemplo: /en/mi-pagina/ (también funciona ?locuentia_lang=en). La portada de cada idioma vive en /en/, /fr/, etc.', 'locuentia' ); ?></p>
+			<h2><?php esc_html_e( 'How content gets translated', 'locuentia' ); ?></h2>
+			<p><?php esc_html_e( 'Translations are filled in while editing each post or page (the “Translations” box below the editor) and are served on language-prefixed URLs, for example: /en/my-page/ (?locuentia_lang=en also works). The home page of each language lives at /en/, /fr/, and so on.', 'locuentia' ); ?></p>
 
-			<h2><?php esc_html_e( 'Selector de idioma (shortcode)', 'locuentia' ); ?></h2>
-			<p><?php esc_html_e( 'Coloca el shortcode donde quieras el selector. Al ser un shortcode funciona en cualquier editor o builder: bloque «Shortcode» de Gutenberg, widget de Elementor, elemento de Bricks, widgets clásicos…', 'locuentia' ); ?></p>
+			<h2><?php esc_html_e( 'Language switcher (shortcode)', 'locuentia' ); ?></h2>
+			<p><?php esc_html_e( 'Place the shortcode wherever you want the switcher. Being a shortcode it works in any editor or builder: the Gutenberg “Shortcode” block, an Elementor widget, a Bricks element, classic widgets…', 'locuentia' ); ?></p>
 
 			<p><code>[locuentia_switcher]</code></p>
 
 			<table class="widefat striped">
 				<thead>
 					<tr>
-						<th><?php esc_html_e( 'Atributo', 'locuentia' ); ?></th>
-						<th><?php esc_html_e( 'Valores', 'locuentia' ); ?></th>
-						<th><?php esc_html_e( 'Qué hace', 'locuentia' ); ?></th>
+						<th><?php esc_html_e( 'Attribute', 'locuentia' ); ?></th>
+						<th><?php esc_html_e( 'Values', 'locuentia' ); ?></th>
+						<th><?php esc_html_e( 'What it does', 'locuentia' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr>
 						<td><code>style</code></td>
-						<td><code>list</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>inline</code>, <code>dropdown</code></td>
-						<td><?php esc_html_e( 'Lista vertical, lista horizontal o menú desplegable.', 'locuentia' ); ?></td>
+						<td><code>list</code> <?php esc_html_e( '(default)', 'locuentia' ); ?>, <code>inline</code>, <code>dropdown</code></td>
+						<td><?php esc_html_e( 'Vertical list, horizontal list, or a dropdown menu.', 'locuentia' ); ?></td>
 					</tr>
 					<tr>
 						<td><code>show</code></td>
-						<td><code>name</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>code</code></td>
-						<td><?php esc_html_e( 'Nombre nativo del idioma (Español, English…) o su código (ES, EN…).', 'locuentia' ); ?></td>
+						<td><code>name</code> <?php esc_html_e( '(default)', 'locuentia' ); ?>, <code>code</code></td>
+						<td><?php esc_html_e( 'Native language name (Español, English…) or its code (ES, EN…).', 'locuentia' ); ?></td>
 					</tr>
 					<tr>
 						<td><code>hide_current</code></td>
-						<td><code>no</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>yes</code></td>
-						<td><?php esc_html_e( 'Oculta el idioma que se está viendo.', 'locuentia' ); ?></td>
+						<td><code>no</code> <?php esc_html_e( '(default)', 'locuentia' ); ?>, <code>yes</code></td>
+						<td><?php esc_html_e( 'Hides the language being viewed.', 'locuentia' ); ?></td>
 					</tr>
 					<tr>
 						<td><code>separator</code></td>
-						<td><?php esc_html_e( 'cualquier texto', 'locuentia' ); ?></td>
-						<td><?php esc_html_e( 'Separador entre elementos en los estilos list e inline, p. ej. "|" o "·".', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'any text', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'Separator between items in the list and inline styles, e.g. "|" or "·".', 'locuentia' ); ?></td>
 					</tr>
 					<tr>
 						<td><code>original_label</code></td>
-						<td><?php esc_html_e( 'cualquier texto', 'locuentia' ); ?></td>
-						<td><?php esc_html_e( 'Etiqueta del idioma original (por defecto, su nombre nativo).', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'any text', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'Label for the original language (defaults to its native name).', 'locuentia' ); ?></td>
 					</tr>
 				</tbody>
 			</table>
 
 			<p>
-				<?php esc_html_e( 'Ejemplos:', 'locuentia' ); ?>
+				<?php esc_html_e( 'Examples:', 'locuentia' ); ?>
 				<code>[locuentia_switcher style="dropdown"]</code>
 				<code>[locuentia_switcher style="inline" show="code" separator="|"]</code>
 				<code>[locuentia_switcher style="inline" hide_current="yes"]</code>
 			</p>
 
-			<p class="description"><?php esc_html_e( 'El elemento del idioma activo lleva la clase locuentia-current por si quieres darle tu propio estilo desde el tema.', 'locuentia' ); ?></p>
+			<p class="description"><?php esc_html_e( 'The active language item carries the locuentia-current class in case you want to style it from your theme.', 'locuentia' ); ?></p>
 		</div>
 		<?php
 	}
@@ -203,7 +203,7 @@ class Locuentia_Admin {
 		foreach ( Locuentia::post_types() as $post_type ) {
 			add_meta_box(
 				'locuentia',
-				__( 'Traducciones', 'locuentia' ),
+				__( 'Translations', 'locuentia' ),
 				array( __CLASS__, 'render_meta_box' ),
 				$post_type,
 				'normal',
@@ -213,9 +213,9 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Textos traducibles de un post (título + contenido): array( hash => texto ).
+	 * Translatable texts of a post (title + excerpt + content): array( hash => text ).
 	 *
-	 * @param WP_Post $post Post en edición.
+	 * @param WP_Post $post Post being edited.
 	 * @return array
 	 */
 	public static function detect_strings( $post ) {
@@ -233,9 +233,9 @@ class Locuentia_Admin {
 
 		$content = (string) $post->post_content;
 		if ( '' !== trim( $content ) ) {
-			// El contenido clásico pasa por wpautop al renderizarse; hay que
-			// imitarlo aquí para que los textos detectados coincidan con los
-			// del frontend (el contenido de bloques no lo necesita).
+			// Classic content goes through wpautop when rendered; mimic it
+			// here so the detected texts match the front end (block content
+			// does not need it).
 			if ( ! function_exists( 'has_blocks' ) || ! has_blocks( $content ) ) {
 				$content = wpautop( $content );
 			}
@@ -246,20 +246,20 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Pinta la caja con un campo de traducción por texto e idioma.
+	 * Renders the box with one translation field per text and language.
 	 *
-	 * @param WP_Post $post Post en edición.
+	 * @param WP_Post $post Post being edited.
 	 */
 	public static function render_meta_box( $post ) {
 		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
-			echo '<p>' . esc_html__( 'Configura al menos un idioma en Ajustes → Locuentia.', 'locuentia' ) . '</p>';
+			echo '<p>' . esc_html__( 'Set up at least one target language in the Locuentia settings.', 'locuentia' ) . '</p>';
 			return;
 		}
 
 		$strings = self::detect_strings( $post );
 		if ( empty( $strings ) ) {
-			echo '<p>' . esc_html__( 'No se ha detectado texto traducible. Escribe el contenido, guarda y vuelve a cargar el editor.', 'locuentia' ) . '</p>';
+			echo '<p>' . esc_html__( 'No translatable text detected. Write some content, save, and reload the editor.', 'locuentia' ) . '</p>';
 			return;
 		}
 
@@ -270,23 +270,23 @@ class Locuentia_Admin {
 			$saved = array();
 		}
 
-		echo '<p class="description">' . esc_html__( 'Los textos se detectan del último contenido guardado. Deja un campo vacío para mostrar el texto original.', 'locuentia' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Texts are detected from the last saved content. Leave a field empty to show the original text.', 'locuentia' ) . '</p>';
 
 		foreach ( $languages as $lang ) {
-			/* translators: %s: código de idioma en mayúsculas. */
-			echo '<h3>' . esc_html( sprintf( __( 'Idioma: %s', 'locuentia' ), strtoupper( $lang ) ) ) . '</h3>';
+			/* translators: %s: uppercase language code. */
+			echo '<h3>' . esc_html( sprintf( __( 'Language: %s', 'locuentia' ), strtoupper( $lang ) ) ) . '</h3>';
 
 			$slug = Locuentia::get_translated_slug( $post->ID, $lang );
-			echo '<p><label>' . esc_html__( 'Slug traducido (opcional):', 'locuentia' ) . ' ';
+			echo '<p><label>' . esc_html__( 'Translated slug (optional):', 'locuentia' ) . ' ';
 			echo '<input type="text" class="regular-text" name="locuentia_slug[' . esc_attr( $lang ) . ']" value="' . esc_attr( $slug ) . '" placeholder="' . esc_attr( $post->post_name ) . '" />';
 			echo '</label><br /><span class="description">'
-				. esc_html( sprintf( /* translators: %s: código de idioma. */ __( 'Cambia la URL en este idioma, p. ej. /%s/mi-slug-traducido/. Vacío = mismo slug que el original.', 'locuentia' ), $lang ) )
+				. esc_html( sprintf( /* translators: %s: language code. */ __( 'Changes the URL in this language, e.g. /%s/my-translated-slug/. Empty = same slug as the original.', 'locuentia' ), $lang ) )
 				. '</span></p>';
 
 			echo '<table class="widefat striped">';
 			echo '<thead><tr>';
-			echo '<th class="locuentia-col-original">' . esc_html__( 'Texto original', 'locuentia' ) . '</th>';
-			echo '<th>' . esc_html__( 'Traducción', 'locuentia' ) . '</th>';
+			echo '<th class="locuentia-col-original">' . esc_html__( 'Original text', 'locuentia' ) . '</th>';
+			echo '<th>' . esc_html__( 'Translation', 'locuentia' ) . '</th>';
 			echo '</tr></thead><tbody>';
 
 			foreach ( $strings as $hash => $text ) {
@@ -303,10 +303,10 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Guarda las traducciones enviadas desde la caja.
+	 * Saves the translations submitted from the box.
 	 *
-	 * @param int     $post_id ID del post.
-	 * @param WP_Post $post    Post guardado.
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Saved post.
 	 */
 	public static function save_post( $post_id, $post ) {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -333,7 +333,7 @@ class Locuentia_Admin {
 		$languages = Locuentia::get_languages();
 
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- se sanitiza elemento a elemento en el bucle.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in the loop below.
 			$raw   = wp_unslash( $_POST['locuentia_tr'] );
 			$clean = array();
 
@@ -363,7 +363,7 @@ class Locuentia_Admin {
 		}
 
 		if ( isset( $_POST['locuentia_slug'] ) && is_array( $_POST['locuentia_slug'] ) ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- se sanitiza con sanitize_title() en el bucle.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized with sanitize_title() in the loop below.
 			$raw_slugs = wp_unslash( $_POST['locuentia_slug'] );
 
 			foreach ( $languages as $lang ) {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend: sirve las traducciones cuando la URL lleva /xx/ o ?locuentia_lang=xx.
+ * Front end: serves the translations when the URL carries /xx/ or ?locuentia_lang=xx.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -8,15 +8,15 @@ defined( 'ABSPATH' ) || exit;
 class Locuentia_Frontend {
 
 	public static function init() {
-		// Prioridad 1 en the_title: hay que comparar el título antes de que
-		// wptexturize lo retoque, que es como se guardó su hash en el editor.
+		// Priority 1 on the_title: the title must be compared before
+		// wptexturize touches it, which is how its hash was stored in the editor.
 		add_filter( 'the_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
 
-		// Prioridad 5: antes de que wp_trim_excerpt (10) genere el extracto
-		// automático. El manual se traduce por hash; el automático se recorta
-		// del contenido, que ya pasa por filter_content.
+		// Priority 5: before wp_trim_excerpt (10) generates the automatic
+		// excerpt. Manual excerpts are translated by hash; automatic ones are
+		// trimmed from the content, which already goes through filter_content.
 		add_filter( 'get_the_excerpt', array( __CLASS__, 'filter_excerpt' ), 5, 2 );
 
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
@@ -26,7 +26,8 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Registra los assets del selector; solo se encolan si el shortcode se usa.
+	 * Registers the switcher assets; they are only enqueued when the
+	 * shortcode is used.
 	 */
 	public static function register_assets() {
 		wp_register_style(
@@ -46,8 +47,8 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Etiquetas hreflang: anuncia a los buscadores todas las versiones de
-	 * idioma de la URL actual, incluida la propia.
+	 * hreflang tags: announce to search engines every language version of
+	 * the current URL, including its own.
 	 */
 	public static function print_hreflang() {
 		if ( is_404() || is_search() || is_preview() || is_embed() ) {
@@ -59,9 +60,9 @@ class Locuentia_Frontend {
 			return;
 		}
 
-		// En contenido individual solo se anuncian los idiomas con alguna
-		// traducción guardada; anunciar una "versión en inglés" idéntica al
-		// original sería una señal falsa para los buscadores.
+		// On singular content only languages with a stored translation are
+		// announced; announcing an "English version" identical to the
+		// original would be a false signal to search engines.
 		if ( is_singular( Locuentia::post_types() ) ) {
 			$post = get_post();
 			$urls = array();
@@ -77,8 +78,8 @@ class Locuentia_Frontend {
 			$base = Locuentia_Router::current_url_unlocalized( false );
 			$urls = array();
 
-			// En vistas de listado solo se anuncian idiomas con alguna
-			// traducción en el sitio; los vacíos mostrarían el original.
+			// On listing views only languages with at least one translation
+			// on the site are announced; empty ones would show the original.
 			foreach ( Locuentia::languages_in_use() as $lang ) {
 				$urls[ $lang ] = Locuentia_Router::localize_url( $base, $lang );
 			}
@@ -111,10 +112,10 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Traduce el título si existe traducción para él.
+	 * Translates the title when a translation exists for it.
 	 *
-	 * @param string      $title Título original.
-	 * @param int|WP_Post $post  ID u objeto del post (según el filtro; no siempre disponible).
+	 * @param string      $title Original title.
+	 * @param int|WP_Post $post  Post ID or object (depending on the filter; not always available).
 	 * @return string
 	 */
 	public static function filter_title( $title, $post = 0 ) {
@@ -139,10 +140,10 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Traduce el extracto manual si existe traducción para él.
+	 * Translates the manual excerpt when a translation exists for it.
 	 *
-	 * @param string       $excerpt Extracto (vacío si el post no tiene manual).
-	 * @param WP_Post|null $post    Post del extracto.
+	 * @param string       $excerpt Excerpt (empty when the post has no manual one).
+	 * @param WP_Post|null $post    Post of the excerpt.
 	 * @return string
 	 */
 	public static function filter_excerpt( $excerpt, $post = null ) {
@@ -167,9 +168,9 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Traduce los textos del contenido que tengan traducción guardada.
+	 * Translates the content texts that have a stored translation.
 	 *
-	 * @param string $content Contenido ya renderizado.
+	 * @param string $content Rendered content.
 	 * @return string
 	 */
 	public static function filter_content( $content ) {
@@ -192,16 +193,16 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Shortcode [locuentia_switcher]: selector de idioma de la página actual.
+	 * [locuentia_switcher] shortcode: language switcher for the current page.
 	 *
-	 * Atributos:
-	 * - style:          list (por defecto) | inline | dropdown
-	 * - show:           name (nombre nativo, por defecto) | code (EN, ES…)
-	 * - hide_current:   yes para ocultar el idioma que se está viendo
-	 * - separator:      texto entre elementos en list/inline (p. ej. "|")
-	 * - original_label: etiqueta personalizada para el idioma original
+	 * Attributes:
+	 * - style:          list (default) | inline | dropdown
+	 * - show:           name (native name, default) | code (EN, ES…)
+	 * - hide_current:   yes to hide the language being viewed
+	 * - separator:      text between items in list/inline (e.g. "|")
+	 * - original_label: custom label for the original language
 	 *
-	 * @param array $atts Atributos del shortcode.
+	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public static function render_switcher( $atts = array() ) {
@@ -228,8 +229,8 @@ class Locuentia_Frontend {
 
 		$current = Locuentia_Router::current_language();
 
-		// En contenido individual se usan los permalinks (con slug traducido);
-		// en el resto de vistas, la URL actual sin idioma.
+		// On singular content permalinks are used (with the translated slug);
+		// on any other view, the current URL without its language.
 		$post = is_singular( Locuentia::post_types() ) ? get_post() : null;
 		$base = $post
 			? Locuentia_Router::permalink_for_language( $post, '' )
@@ -278,7 +279,7 @@ class Locuentia_Frontend {
 			wp_enqueue_script( 'locuentia-switcher' );
 
 			$out = '<select class="locuentia-switcher locuentia-switcher--dropdown" aria-label="'
-				. esc_attr__( 'Seleccionar idioma', 'locuentia' ) . '">';
+				. esc_attr__( 'Select language', 'locuentia' ) . '">';
 
 			foreach ( $items as $item ) {
 				$out .= '<option value="' . esc_url( $item['url'] ) . '"'
