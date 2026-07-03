@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.12 — 2026-07-03
+
+- **Translation progress column** in the post and page list tables: one badge per language with translated/total texts (green complete, amber partial, gray untouched), counting only translations whose text still exists in the content.
+- The detector no longer treats bare shortcodes (`[locuentia_switcher]`) as translatable text.
+
 ## 0.0.11 — 2026-07-03
 
 - The **featured image alt text** is now translatable: it shows up in the translations box and is served translated wherever the image is rendered via `wp_get_attachment_image` (featured images, dynamic galleries).

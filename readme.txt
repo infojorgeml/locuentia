@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.11
+Stable tag: 0.0.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 * Internal links (menus, listings) keep the visitor in the active language.
 * `hreflang` tags on every URL, announcing only languages that actually have translations.
 * Per-language sitemaps integrated into the native WordPress sitemaps (`wp-sitemap-locuentia-en-1.xml`).
+* Translation progress column in the post and page lists: see at a glance what is translated, per language.
 * Configurable source language, independent from the site locale.
 * Clean uninstall: removes all options and stored translations.
 
@@ -67,6 +68,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.12 =
+* Translation progress column in the post and page list tables, with one badge per language (translated/total texts).
+* Bare shortcodes are no longer detected as translatable text.
 
 = 0.0.11 =
 * The featured image alt text is now translatable, served wherever the image is rendered via wp_get_attachment_image.

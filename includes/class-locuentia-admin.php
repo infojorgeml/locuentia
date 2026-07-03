@@ -14,6 +14,93 @@ class Locuentia_Admin {
 		add_action( 'save_post', array( __CLASS__, 'save_post' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'show_slug_collision_notice' ) );
+		add_action( 'admin_init', array( __CLASS__, 'register_list_columns' ) );
+	}
+
+	/**
+	 * Adds the translation progress column to the post list tables.
+	 *
+	 * Registered on admin_init so third-party locuentia_post_types filters
+	 * are already in place.
+	 */
+	public static function register_list_columns() {
+		if ( empty( Locuentia::get_languages() ) ) {
+			return;
+		}
+
+		foreach ( Locuentia::post_types() as $post_type ) {
+			add_filter( "manage_{$post_type}_posts_columns", array( __CLASS__, 'add_translations_column' ) );
+			add_action( "manage_{$post_type}_posts_custom_column", array( __CLASS__, 'render_translations_column' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * Inserts the Translations column right before the Date column.
+	 *
+	 * @param array $columns List table columns.
+	 * @return array
+	 */
+	public static function add_translations_column( $columns ) {
+		$new = array();
+
+		foreach ( $columns as $key => $label ) {
+			if ( 'date' === $key ) {
+				$new['locuentia'] = __( 'Translations', 'locuentia' );
+			}
+			$new[ $key ] = $label;
+		}
+
+		if ( ! isset( $new['locuentia'] ) ) {
+			$new['locuentia'] = __( 'Translations', 'locuentia' );
+		}
+
+		return $new;
+	}
+
+	/**
+	 * Renders one progress badge per language: translated/total texts.
+	 *
+	 * @param string $column  Column key.
+	 * @param int    $post_id Row post ID.
+	 */
+	public static function render_translations_column( $column, $post_id ) {
+		if ( 'locuentia' !== $column ) {
+			return;
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return;
+		}
+
+		$strings = self::detect_strings( $post );
+		$total   = count( $strings );
+
+		if ( 0 === $total ) {
+			echo '<span class="locuentia-badge locuentia-badge--none">' . esc_html__( 'No text', 'locuentia' ) . '</span>';
+			return;
+		}
+
+		foreach ( Locuentia::get_languages() as $lang ) {
+			// Only translations whose hash still matches a current text count.
+			$done = count( array_intersect_key( Locuentia::get_post_translations( $post_id, $lang ), $strings ) );
+
+			if ( $done >= $total ) {
+				$state = 'full';
+			} elseif ( $done > 0 ) {
+				$state = 'partial';
+			} else {
+				$state = 'none';
+			}
+
+			printf(
+				'<span class="locuentia-badge locuentia-badge--%1$s">%2$s %3$d/%4$d</span> ',
+				esc_attr( $state ),
+				esc_html( strtoupper( $lang ) ),
+				(int) $done,
+				(int) $total
+			);
+		}
 	}
 
 	/**
@@ -60,12 +147,12 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Translations box styles, only on the edit screens.
+	 * Translations box and list column styles, only where they render.
 	 *
 	 * @param string $hook_suffix Current admin screen.
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( 'post.php' !== $hook_suffix && 'post-new.php' !== $hook_suffix ) {
+		if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php', 'edit.php' ), true ) ) {
 			return;
 		}
 

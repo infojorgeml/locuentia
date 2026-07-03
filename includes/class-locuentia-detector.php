@@ -57,13 +57,22 @@ class Locuentia_Detector {
 	}
 
 	/**
-	 * A text is translatable when it contains at least one letter.
+	 * A text is translatable when it contains at least one letter and is
+	 * not a bare shortcode (translating "[locuentia_switcher]" would break it).
 	 *
 	 * @param string $text Already normalized text.
 	 * @return bool
 	 */
 	public static function is_translatable( $text ) {
-		return '' !== $text && (bool) preg_match( '/\p{L}/u', $text );
+		if ( '' === $text || ! preg_match( '/\p{L}/u', $text ) ) {
+			return false;
+		}
+
+		if ( preg_match( '/^\[[^\[\]]+\]$/', $text ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

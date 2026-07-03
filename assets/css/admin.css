@@ -11,3 +11,30 @@
 	color: #996800;
 	font-weight: 600;
 }
+
+/* Translation progress badges in the post list tables. */
+.locuentia-badge {
+	display: inline-block;
+	margin: 0 4px 4px 0;
+	padding: 1px 7px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.locuentia-badge--full {
+	background: #edfaef;
+	color: #007017;
+}
+
+.locuentia-badge--partial {
+	background: #fcf9e8;
+	color: #996800;
+}
+
+.locuentia-badge--none {
+	background: #f0f0f1;
+	color: #646970;
+}
