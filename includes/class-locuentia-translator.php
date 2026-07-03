@@ -154,6 +154,16 @@ class Locuentia_Translator {
 		$saved   = Locuentia::get_post_translations( $post_id, $lang );
 		$slug    = Locuentia::get_translated_slug( $post_id, $lang );
 
+		// Page-level texts: everything the served page contains that the
+		// post inventory does not cover (builder output, menus, theme).
+		$page_strings = array();
+		$page_error   = '';
+		if ( 'publish' === $post->post_status ) {
+			$page_strings = self::detect_page_strings( $post, $page_error );
+			$page_strings = array_diff_key( $page_strings, $strings );
+		}
+		$site_saved = Locuentia::get_site_translations( $lang );
+
 		$queue_url = add_query_arg( 'page', 'locuentia', admin_url( 'admin.php' ) );
 
 		$title = get_the_title( $post );
@@ -233,11 +243,75 @@ class Locuentia_Translator {
 						</tbody>
 					</table>
 
+					<?php if ( ! empty( $page_strings ) ) : ?>
+						<h2><?php esc_html_e( 'Page texts', 'locuentia' ); ?></h2>
+						<p class="description"><?php esc_html_e( 'Detected from the page as it is actually served (builder output, menus, widgets and theme texts). These translations are saved site-wide: translating a text here applies wherever it appears.', 'locuentia' ); ?></p>
+
+						<table class="widefat striped">
+							<thead>
+								<tr>
+									<th class="locuentia-col-original"><?php esc_html_e( 'Original text', 'locuentia' ); ?></th>
+									<th><?php esc_html_e( 'Translation', 'locuentia' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $page_strings as $hash => $text ) : ?>
+									<tr>
+										<td><?php echo esc_html( $text ); ?></td>
+										<td><textarea rows="2" name="locuentia_site_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( isset( $site_saved[ $hash ] ) ? $site_saved[ $hash ] : '' ); ?></textarea></td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					<?php elseif ( '' !== $page_error ) : ?>
+						<p class="description"><?php echo esc_html( $page_error ); ?></p>
+					<?php endif; ?>
+
 					<?php submit_button( __( 'Save translations', 'locuentia' ) ); ?>
 				</form>
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Texts of the page as it is actually served, via an internal loopback
+	 * request to the post's original (unprefixed) URL.
+	 *
+	 * @param WP_Post $post   Post whose page is fetched.
+	 * @param string  $error  Filled with a user-facing message on failure.
+	 * @return array array( hash => text ).
+	 */
+	private static function detect_page_strings( $post, &$error ) {
+		static $cache = array();
+
+		if ( isset( $cache[ $post->ID ] ) ) {
+			return $cache[ $post->ID ];
+		}
+
+		$error = '';
+		$url   = Locuentia_Router::unlocalized_permalink( $post );
+
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout'   => 15,
+				'sslverify' => false,
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			$error = __( 'The rendered page could not be fetched, so page-level texts (builder, menus, theme) are not listed.', 'locuentia' );
+
+			$cache[ $post->ID ] = array();
+			return array();
+		}
+
+		$strings = Locuentia_Detector::extract_document_strings( wp_remote_retrieve_body( $response ) );
+
+		$cache[ $post->ID ] = $strings;
+
+		return $strings;
 	}
 
 	/* ---------- Saving ---------- */
@@ -267,6 +341,11 @@ class Locuentia_Translator {
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_translations().
 			Locuentia_Admin::update_translations( $post_id, wp_unslash( $_POST['locuentia_tr'] ) );
+		}
+
+		if ( isset( $_POST['locuentia_site_tr'] ) && is_array( $_POST['locuentia_site_tr'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_site_translations().
+			Locuentia_Admin::update_site_translations( wp_unslash( $_POST['locuentia_site_tr'] ) );
 		}
 
 		if ( isset( $_POST['locuentia_slug'] ) && is_array( $_POST['locuentia_slug'] ) ) {

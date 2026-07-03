@@ -20,7 +20,8 @@ Empty fields show the original text (you do not need to translate everything).
 
 ## How it works
 
-- Texts are detected by walking the text nodes and the image `alt` attributes of the content **as the front end renders it** (`the_content` filters: blocks, shortcodes and whatever builders hook there), with a safe fallback to the raw content. `script`, `style`, `code` and `pre` are ignored, as are fragments without letters and bare shortcodes.
+- Texts are detected by walking the text nodes and the translatable attributes (image `alt`, form `placeholder`, submit `value`) of the content **as the front end renders it**, with a safe fallback to the raw content. `script`, `style`, `code` and `pre` are ignored, as are fragments without letters and bare shortcodes.
+- **Full-page mode**: on language URLs the final served HTML document is translated as a whole (output buffer + DOM pass), covering builders like Bricks or Elementor, menus, widgets and theme texts — no builder-specific integrations. The Translate screen fetches the served page internally and lists those extra texts in a "Page texts" section, stored **site-wide** (`locuentia_site_translations`): translate a text once and it applies wherever it appears. Per-post translations take precedence over site-wide ones.
 - The manual excerpt is translated as one more text; the automatic excerpt is already generated from the translated content.
 - Each text is identified by a hash of its normalized version (unified whitespace and typography), and translations are stored as plain text in the `_locuentia_translations` post meta.
 - Language URLs are resolved by duplicating the WordPress rewrite rules under each prefix (`/en/…`); the rules regenerate themselves when the plugin is activated or the languages change. If a language URL ever 404s, save Settings → Permalinks to regenerate them manually.
@@ -32,7 +33,7 @@ Empty fields show the original text (you do not need to translate everything).
 
 ## Limitations (on purpose, to keep it simple)
 
-- Only the title, content (as rendered, dynamic blocks and shortcode output included), manual excerpt and image `alt` texts (in-content and featured) are translated (including the browser tab `<title>`): menus and navigation, widgets and theme strings are not.
+- On language URLs the whole served page is translatable: content, menus, widgets, theme and builder texts (via the site-wide "Page texts" of the Translate screen). Emails, admin screens and content served outside regular pages are not.
 - Text with inline formatting (bold, links) is split into fragments: each fragment is translated separately.
 - Translations are plain text (no HTML).
 - If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.

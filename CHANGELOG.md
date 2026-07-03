@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.15 — 2026-07-03
+
+- **Full-page translation mode**: on language URLs, the final served HTML document is translated as a whole (output buffer + DOM pass), covering output that never goes through `the_content` — page builders like Bricks, menus, widgets and theme texts. Per-post translations take precedence; feeds, sitemaps and robots are untouched.
+- **Page texts on the Translate screen**: the served page of a published post is fetched internally (loopback) and every text not covered by the post inventory is listed in a new "Page texts" section. These translations are stored **site-wide**: translating a text once applies wherever it appears (menus, footers, buttons…).
+- The detector now handles full HTML documents (UTF-8 safe, doctype preserved) and also detects **form field placeholders** and **submit/button values**.
+- New `locuentia_site_translations` option (removed on uninstall).
+
 ## 0.0.14 — 2026-07-03
 
 - **Detection from rendered content**: translatable texts are now discovered from the content as the front end renders it (`the_content` filters — blocks, shortcodes, and whatever page builders hook there), instead of the raw database content. Shortcode output and dynamic block output become detectable and translatable. Existing text hashes are unchanged, so stored translations keep working.

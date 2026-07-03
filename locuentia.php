@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.14
+ * Version:           0.0.15
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.14' );
+define( 'LOCUENTIA_VERSION', '0.0.15' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -23,10 +23,11 @@ require_once LOCUENTIA_DIR . 'includes/class-locuentia-router.php';
 
 final class Locuentia {
 
-	const OPTION_LANGUAGES = 'locuentia_languages';
-	const OPTION_SOURCE    = 'locuentia_source_language';
-	const META_KEY         = '_locuentia_translations';
-	const SLUG_META_PREFIX = '_locuentia_slug_';
+	const OPTION_LANGUAGES         = 'locuentia_languages';
+	const OPTION_SOURCE            = 'locuentia_source_language';
+	const OPTION_SITE_TRANSLATIONS = 'locuentia_site_translations';
+	const META_KEY                 = '_locuentia_translations';
+	const SLUG_META_PREFIX         = '_locuentia_slug_';
 
 	public static function init() {
 		Locuentia_Router::init();
@@ -138,6 +139,25 @@ final class Locuentia {
 	 */
 	public static function get_translated_slug( $post_id, $lang ) {
 		return (string) get_post_meta( $post_id, self::SLUG_META_PREFIX . $lang, true );
+	}
+
+	/**
+	 * Site-wide translations for a language: array( hash => text ).
+	 *
+	 * These come from page-level texts (menus, theme, builder output): a
+	 * text translated here applies wherever it appears on the site.
+	 *
+	 * @param string $lang Language code.
+	 * @return array
+	 */
+	public static function get_site_translations( $lang ) {
+		$data = get_option( self::OPTION_SITE_TRANSLATIONS, array() );
+
+		if ( ! is_array( $data ) || empty( $data[ $lang ] ) || ! is_array( $data[ $lang ] ) ) {
+			return array();
+		}
+
+		return $data[ $lang ];
 	}
 
 	/**

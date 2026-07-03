@@ -25,8 +25,70 @@ class Locuentia_Frontend {
 
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
+		// Full-page pass: translates the final served HTML, covering output
+		// that never goes through the_content (page builders like Bricks,
+		// menus, widgets, theme texts). The content filters above still run
+		// first for per-post precision and for feeds.
+		add_action( 'template_redirect', array( __CLASS__, 'start_page_buffer' ), 1 );
+
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
 		add_shortcode( 'locuentia_switcher', array( __CLASS__, 'render_switcher' ) );
+	}
+
+	/**
+	 * Starts buffering the page output on language URLs so the final HTML
+	 * document can be translated as a whole.
+	 */
+	public static function start_page_buffer() {
+		if ( '' === Locuentia_Router::current_language() ) {
+			return;
+		}
+
+		if ( is_feed() || is_robots() || is_embed() || is_preview() ) {
+			return;
+		}
+
+		if ( get_query_var( 'sitemap' ) || ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+
+		ob_start( array( __CLASS__, 'translate_page_output' ) );
+	}
+
+	/**
+	 * Output buffer callback: translates the full HTML document using the
+	 * current post map plus the site-wide map.
+	 *
+	 * @param string $html Buffered page output.
+	 * @return string
+	 */
+	public static function translate_page_output( $html ) {
+		if ( ! is_string( $html ) || '' === $html || false === stripos( $html, '<html' ) ) {
+			return $html;
+		}
+
+		try {
+			$lang = Locuentia_Router::current_language();
+			if ( '' === $lang ) {
+				return $html;
+			}
+
+			$map = Locuentia::get_site_translations( $lang );
+
+			$post = is_singular( Locuentia::post_types() ) ? get_post() : null;
+			if ( $post ) {
+				// Per-post translations win over site-wide ones.
+				$map = Locuentia::get_post_translations( $post->ID, $lang ) + $map;
+			}
+
+			if ( empty( $map ) ) {
+				return $html;
+			}
+
+			return Locuentia_Detector::translate_document( $html, $map );
+		} catch ( \Throwable $e ) {
+			return $html;
+		}
 	}
 
 	/**

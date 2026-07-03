@@ -622,6 +622,57 @@ class Locuentia_Admin {
 	}
 
 	/**
+	 * Sanitizes and stores submitted site-wide translations, merging per
+	 * language and per hash: only the hashes present in the input change.
+	 * Empty values remove the stored translation for that hash.
+	 *
+	 * @param array $raw Unslashed input: lang => ( hash => text ).
+	 */
+	public static function update_site_translations( array $raw ) {
+		$languages = Locuentia::get_languages();
+
+		$data = get_option( Locuentia::OPTION_SITE_TRANSLATIONS, array() );
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+
+		foreach ( $raw as $lang => $items ) {
+			$lang = Locuentia::sanitize_language_code( $lang );
+			if ( '' === $lang || ! in_array( $lang, $languages, true ) || ! is_array( $items ) ) {
+				continue;
+			}
+
+			if ( ! isset( $data[ $lang ] ) || ! is_array( $data[ $lang ] ) ) {
+				$data[ $lang ] = array();
+			}
+
+			foreach ( $items as $hash => $value ) {
+				if ( ! is_string( $value ) || ! preg_match( '/^[a-f0-9]{32}$/', (string) $hash ) ) {
+					continue;
+				}
+
+				$value = sanitize_textarea_field( $value );
+
+				if ( '' === $value ) {
+					unset( $data[ $lang ][ $hash ] );
+				} else {
+					$data[ $lang ][ $hash ] = $value;
+				}
+			}
+
+			if ( empty( $data[ $lang ] ) ) {
+				unset( $data[ $lang ] );
+			}
+		}
+
+		if ( empty( $data ) ) {
+			delete_option( Locuentia::OPTION_SITE_TRANSLATIONS );
+		} else {
+			update_option( Locuentia::OPTION_SITE_TRANSLATIONS, $data );
+		}
+	}
+
+	/**
 	 * Sanitizes and stores submitted translated slugs (one meta per language,
 	 * only for the languages present in the input), rejecting collisions.
 	 *

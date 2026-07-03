@@ -6,11 +6,19 @@
  * Each text is identified by the MD5 hash of its normalized version, so
  * detection in the editor and replacement on the front end match even when
  * whitespace, entities or wptexturize typography differ.
+ *
+ * Works in two modes: HTML fragments (post content) and full HTML documents
+ * (whole served pages), sharing the same collection/replacement logic.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 class Locuentia_Detector {
+
+	/**
+	 * Encoding hint prepended when parsing full documents; stripped on output.
+	 */
+	const ENCODING_PI = '<?xml encoding="utf-8" ?>';
 
 	/**
 	 * Normalizes a text so it can be identified in a stable way.
@@ -82,32 +90,25 @@ class Locuentia_Detector {
 	 * @return array
 	 */
 	public static function extract_strings( $html ) {
-		$strings = array();
-
 		$dom = self::load_dom( $html );
-		if ( ! $dom ) {
-			return $strings;
-		}
 
-		foreach ( self::text_nodes( $dom ) as $node ) {
-			$text = self::normalize_text( $node->nodeValue );
-			if ( self::is_translatable( $text ) ) {
-				$strings[ md5( $text ) ] = $text;
-			}
-		}
-
-		foreach ( self::image_alts( $dom ) as $img ) {
-			$alt = self::normalize_text( $img->getAttribute( 'alt' ) );
-			if ( self::is_translatable( $alt ) ) {
-				$strings[ md5( $alt ) ] = $alt;
-			}
-		}
-
-		return $strings;
+		return $dom ? self::collect_strings( $dom ) : array();
 	}
 
 	/**
-	 * Replaces in the HTML the texts that have a translation.
+	 * Returns the translatable texts of a full HTML document (body only).
+	 *
+	 * @param string $html Full HTML document, as served.
+	 * @return array
+	 */
+	public static function extract_document_strings( $html ) {
+		$dom = self::load_dom( $html, true );
+
+		return $dom ? self::collect_strings( $dom ) : array();
+	}
+
+	/**
+	 * Replaces in an HTML fragment the texts that have a translation.
 	 *
 	 * @param string $html HTML fragment.
 	 * @param array  $map  Translations: array( hash => translated text ).
@@ -119,10 +120,77 @@ class Locuentia_Detector {
 		}
 
 		$dom = self::load_dom( $html );
-		if ( ! $dom ) {
+		if ( ! $dom || ! self::apply_translations( $dom, $map ) ) {
 			return $html;
 		}
 
+		$out = self::serialize_body( $dom );
+
+		return null === $out ? $html : $out;
+	}
+
+	/**
+	 * Replaces in a full HTML document the texts that have a translation.
+	 *
+	 * @param string $html Full HTML document, as served.
+	 * @param array  $map  Translations: array( hash => translated text ).
+	 * @return string
+	 */
+	public static function translate_document( $html, $map ) {
+		if ( empty( $map ) || ! is_array( $map ) ) {
+			return $html;
+		}
+
+		$dom = self::load_dom( $html, true );
+		if ( ! $dom || ! $dom->documentElement || ! self::apply_translations( $dom, $map ) ) {
+			return $html;
+		}
+
+		// Serializing the root node (instead of the whole document) keeps
+		// raw UTF-8 output and drops the encoding PI in one go. The parser
+		// discards the doctype when the PI precedes it, so it is restored
+		// from the original source.
+		$doctype = preg_match( '/^\s*<!DOCTYPE[^>]*>/i', $html, $m ) ? trim( $m[0] ) . "\n" : '';
+
+		$out = (string) $dom->saveHTML( $dom->documentElement );
+
+		return '' === trim( $out ) ? $html : $doctype . $out;
+	}
+
+	/**
+	 * Collects the translatable texts of a loaded document.
+	 *
+	 * @param DOMDocument $dom Loaded document.
+	 * @return array array( hash => text ).
+	 */
+	private static function collect_strings( DOMDocument $dom ) {
+		$strings = array();
+
+		foreach ( self::text_nodes( $dom ) as $node ) {
+			$text = self::normalize_text( $node->nodeValue );
+			if ( self::is_translatable( $text ) ) {
+				$strings[ md5( $text ) ] = $text;
+			}
+		}
+
+		foreach ( self::attribute_nodes( $dom ) as $pair ) {
+			$text = self::normalize_text( $pair[0]->getAttribute( $pair[1] ) );
+			if ( self::is_translatable( $text ) ) {
+				$strings[ md5( $text ) ] = $text;
+			}
+		}
+
+		return $strings;
+	}
+
+	/**
+	 * Applies a translation map to a loaded document.
+	 *
+	 * @param DOMDocument $dom Loaded document.
+	 * @param array       $map Translations: array( hash => translated text ).
+	 * @return bool Whether anything was replaced.
+	 */
+	private static function apply_translations( DOMDocument $dom, array $map ) {
 		$changed = false;
 
 		foreach ( self::text_nodes( $dom ) as $node ) {
@@ -145,67 +213,95 @@ class Locuentia_Detector {
 			$changed         = true;
 		}
 
-		foreach ( self::image_alts( $dom ) as $img ) {
-			$alt = self::normalize_text( $img->getAttribute( 'alt' ) );
-			if ( '' === $alt ) {
+		foreach ( self::attribute_nodes( $dom ) as $pair ) {
+			$text = self::normalize_text( $pair[0]->getAttribute( $pair[1] ) );
+			if ( '' === $text ) {
 				continue;
 			}
 
-			$hash = md5( $alt );
+			$hash = md5( $text );
 			if ( ! isset( $map[ $hash ] ) || '' === (string) $map[ $hash ] ) {
 				continue;
 			}
 
-			$img->setAttribute( 'alt', (string) $map[ $hash ] );
+			$pair[0]->setAttribute( $pair[1], (string) $map[ $hash ] );
 			$changed = true;
 		}
 
-		if ( ! $changed ) {
-			return $html;
-		}
-
-		$out = self::serialize_body( $dom );
-
-		return null === $out ? $html : $out;
+		return $changed;
 	}
 
 	/**
-	 * Loads an HTML fragment into a DOMDocument (UTF-8).
+	 * Loads HTML into a DOMDocument (UTF-8).
 	 *
-	 * @param string $html HTML fragment.
+	 * @param string $html        HTML fragment or full document.
+	 * @param bool   $is_document True when $html is a full document (not wrapped).
 	 * @return DOMDocument|null
 	 */
-	private static function load_dom( $html ) {
+	private static function load_dom( $html, $is_document = false ) {
 		if ( ! class_exists( 'DOMDocument' ) || '' === trim( (string) $html ) ) {
 			return null;
 		}
 
 		$previous = libxml_use_internal_errors( true );
 
-		$dom     = new DOMDocument( '1.0', 'UTF-8' );
-		$wrapped = '<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>'
-			. $html
-			. '</body></html>';
+		$dom = new DOMDocument( '1.0', 'UTF-8' );
 
-		$loaded = $dom->loadHTML( $wrapped, LIBXML_NOERROR | LIBXML_NOWARNING );
+		if ( $is_document ) {
+			// The XML PI forces UTF-8 regardless of how libxml reads the
+			// document's own meta tags; it is stripped when serializing.
+			$source = self::ENCODING_PI . $html;
+		} else {
+			$source = '<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>'
+				. $html
+				. '</body></html>';
+		}
+
+		$loaded = $dom->loadHTML( $source, LIBXML_NOERROR | LIBXML_NOWARNING );
 
 		libxml_clear_errors();
 		libxml_use_internal_errors( $previous );
 
-		return $loaded ? $dom : null;
+		if ( ! $loaded ) {
+			return null;
+		}
+
+		// Make the HTML serializer emit raw UTF-8 instead of turning every
+		// non-ASCII character into an entity (which would bloat non-Latin pages).
+		$dom->encoding = 'UTF-8';
+
+		return $dom;
 	}
 
 	/**
-	 * Content images with a non-empty alt attribute.
+	 * Elements with translatable attributes in the body: image alt texts,
+	 * form field placeholders and submit/button values.
 	 *
 	 * @param DOMDocument $dom Loaded document.
-	 * @return DOMNodeList|array
+	 * @return array Array of ( DOMElement, attribute name ) pairs.
 	 */
-	private static function image_alts( DOMDocument $dom ) {
+	private static function attribute_nodes( DOMDocument $dom ) {
 		$xpath = new DOMXPath( $dom );
-		$nodes = $xpath->query( '//body//img[@alt and string-length(@alt) > 0]' );
 
-		return $nodes ? $nodes : array();
+		$queries = array(
+			'alt'         => '//body//img[@alt and string-length(@alt) > 0]',
+			'placeholder' => '//body//*[self::input or self::textarea][@placeholder and string-length(@placeholder) > 0]',
+			'value'       => '//body//input[(@type="submit" or @type="button") and @value and string-length(@value) > 0]',
+		);
+
+		$pairs = array();
+
+		foreach ( $queries as $attribute => $query ) {
+			$nodes = $xpath->query( $query );
+			if ( ! $nodes ) {
+				continue;
+			}
+			foreach ( $nodes as $node ) {
+				$pairs[] = array( $node, $attribute );
+			}
+		}
+
+		return $pairs;
 	}
 
 	/**

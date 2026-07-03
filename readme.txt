@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.14
+Stable tag: 0.0.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,8 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 
 **Features**
 
-* Detects translatable texts from the content of posts and pages as it is actually rendered (blocks, shortcodes and whatever your builder outputs), including the title, the manual excerpt and the image alt texts (featured image included).
+* Detects translatable texts from the content of posts and pages as it is actually rendered (blocks, shortcodes and whatever your builder outputs), including the title, the manual excerpt, image alt texts (featured image included), form placeholders and button values.
+* Full-page mode: the Translate screen also lists the page-level texts of the served page (page builder output, menus, widgets, theme texts), translated site-wide — translate a text once and it applies wherever it appears.
 * One translation field per text and language, in a meta box below the editor. Empty fields fall back to the original text.
 * Language-prefixed URLs: `/en/my-page/`, `/en/` for the home page (pretty permalinks required; `?locuentia_lang=xx` works as a fallback).
 * Optional translated slugs per language (`/en/about-us/` instead of `/en/sobre-nosotros/`), with automatic 301 redirects from the untranslated slug.
@@ -34,7 +35,7 @@ Each text is identified by a hash of its normalized version, so detection in the
 
 **Limitations (by design, to keep it simple)**
 
-* Only the post title, content (as rendered, dynamic blocks and shortcode output included), manual excerpt and image alt texts (in-content and featured) are translated: menus with custom labels, widgets and theme strings are not.
+* On language URLs the whole served page is translatable (content, menus, widgets, theme and builder texts). Emails, admin screens and content served outside regular pages are not.
 * Text with inline formatting (bold, links) is split into fragments, each translated separately.
 * Translations are plain text (no HTML).
 * The original language always lives at the unprefixed URL.
@@ -58,7 +59,7 @@ No. All translations are written by you and stored in your database. The plugin 
 
 = Does it work with page builders? =
 
-Detection and replacement both work on the rendered post content, so builders whose output goes through the standard content pipeline are covered without any specific integration. Builders that render entirely outside of it may only be partially detected.
+Yes, without builder-specific integrations. Replacement happens on the final served HTML, and detection fetches the page as it is actually served, so Gutenberg, Elementor, Bricks or any other builder is covered: their texts show up in the "Page texts" section of the Translate screen.
 
 = Do I need to translate everything? =
 
@@ -69,6 +70,11 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.15 =
+* Full-page translation mode: on language URLs the final served HTML is translated as a whole, covering page builders (Bricks, Elementor…), menus, widgets and theme texts without builder-specific integrations.
+* New "Page texts" section on the Translate screen, fed by an internal fetch of the served page. These translations are stored site-wide: translate a text once and it applies everywhere.
+* The detector also handles form placeholders and submit/button values.
 
 = 0.0.14 =
 * Texts are now detected from the rendered content (blocks, shortcodes and builder output on the standard pipeline), with a safe fallback to the raw content. Shortcode and dynamic block output becomes translatable; existing translations are unaffected.
