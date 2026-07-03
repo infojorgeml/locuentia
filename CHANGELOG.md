@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.11 — 2026-07-03
+
+- The **featured image alt text** is now translatable: it shows up in the translations box and is served translated wherever the image is rendered via `wp_get_attachment_image` (featured images, dynamic galleries).
+- Performance: `find_slug_collision()` no longer uses exclusionary query parameters (`post__not_in`); the edited post is filtered in PHP (fixes the Plugin Check VIP warnings).
+
 ## 0.0.10 — 2026-07-03
 
 - Translated slug collision validation: a slug already used by other content — as a translated slug for the same language or as its real slug — is rejected on save, keeping the previous value, and reported with an admin notice linking to the colliding content.

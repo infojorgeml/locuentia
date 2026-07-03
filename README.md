@@ -32,7 +32,7 @@ Empty fields show the original text (you do not need to translate everything).
 
 ## Limitations (on purpose, to keep it simple)
 
-- Only the title, content, manual excerpt and in-content image `alt` texts are translated (including the browser tab `<title>`): menus and navigation, widgets, theme strings, the featured image `alt` and dynamic shortcode/block output are not.
+- Only the title, content, manual excerpt and image `alt` texts (in-content and featured) are translated (including the browser tab `<title>`): menus and navigation, widgets, theme strings and dynamic shortcode/block output are not.
 - Text with inline formatting (bold, links) is split into fragments: each fragment is translated separately.
 - Translations are plain text (no HTML).
 - If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.

@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.10
+ * Version:           0.0.11
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.10' );
+define( 'LOCUENTIA_VERSION', '0.0.11' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -160,35 +160,44 @@ final class Locuentia {
 
 		$statuses = array( 'publish', 'future', 'private' );
 
+		// The edited post is filtered out in PHP instead of with
+		// post__not_in (exclusionary parameters degrade the query plan),
+		// so two results are enough: at most one of them is the post itself.
 		$found = get_posts(
 			array(
 				'post_type'      => self::post_types(),
 				'post_status'    => $statuses,
-				'posts_per_page' => 1,
-				'post__not_in'   => array( (int) $exclude_post_id ),
-				// Targeted lookup on an indexed key, capped at 1 result.
+				'posts_per_page' => 2,
+				// Targeted lookup on an indexed key.
 				'meta_key'       => self::SLUG_META_PREFIX . $lang, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_value'     => $slug, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 				'no_found_rows'  => true,
 			)
 		);
 
-		if ( ! empty( $found ) ) {
-			return $found[0];
+		foreach ( $found as $candidate ) {
+			if ( (int) $candidate->ID !== (int) $exclude_post_id ) {
+				return $candidate;
+			}
 		}
 
 		$found = get_posts(
 			array(
 				'post_type'      => self::post_types(),
 				'post_status'    => $statuses,
-				'posts_per_page' => 1,
-				'post__not_in'   => array( (int) $exclude_post_id ),
+				'posts_per_page' => 2,
 				'post_name__in'  => array( $slug ),
 				'no_found_rows'  => true,
 			)
 		);
 
-		return ! empty( $found ) ? $found[0] : null;
+		foreach ( $found as $candidate ) {
+			if ( (int) $candidate->ID !== (int) $exclude_post_id ) {
+				return $candidate;
+			}
+		}
+
+		return null;
 	}
 
 	/**

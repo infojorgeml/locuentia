@@ -19,6 +19,10 @@ class Locuentia_Frontend {
 		// trimmed from the content, which already goes through filter_content.
 		add_filter( 'get_the_excerpt', array( __CLASS__, 'filter_excerpt' ), 5, 2 );
 
+		// Covers images rendered via wp_get_attachment_image (featured image,
+		// dynamic galleries); in-content <img> tags are handled by the detector.
+		add_filter( 'wp_get_attachment_image_attributes', array( __CLASS__, 'filter_image_attributes' ) );
+
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
@@ -165,6 +169,37 @@ class Locuentia_Frontend {
 		$hash = Locuentia_Detector::hash_text( $excerpt );
 
 		return isset( $map[ $hash ] ) ? $map[ $hash ] : $excerpt;
+	}
+
+	/**
+	 * Translates the alt attribute of attachment images (featured image,
+	 * dynamic galleries) using the translations of the post being displayed.
+	 *
+	 * @param array $attr Image attributes.
+	 * @return array
+	 */
+	public static function filter_image_attributes( $attr ) {
+		$lang = Locuentia_Router::current_language();
+		if ( '' === $lang || ! is_array( $attr ) || empty( $attr['alt'] ) ) {
+			return $attr;
+		}
+
+		$post = get_post();
+		if ( ! $post || ! in_array( $post->post_type, Locuentia::post_types(), true ) ) {
+			return $attr;
+		}
+
+		$map = Locuentia::get_post_translations( $post->ID, $lang );
+		if ( empty( $map ) ) {
+			return $attr;
+		}
+
+		$hash = Locuentia_Detector::hash_text( $attr['alt'] );
+		if ( isset( $map[ $hash ] ) ) {
+			$attr['alt'] = $map[ $hash ];
+		}
+
+		return $attr;
 	}
 
 	/**

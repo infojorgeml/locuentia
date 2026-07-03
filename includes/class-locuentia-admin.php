@@ -275,6 +275,16 @@ class Locuentia_Admin {
 			$strings[ md5( $excerpt ) ] = $excerpt;
 		}
 
+		// Featured image alt text: it lives in the attachment meta, not in
+		// the post content, so it is collected explicitly.
+		$thumbnail_id = get_post_thumbnail_id( $post );
+		if ( $thumbnail_id ) {
+			$thumb_alt = Locuentia_Detector::normalize_text( get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) );
+			if ( Locuentia_Detector::is_translatable( $thumb_alt ) ) {
+				$strings[ md5( $thumb_alt ) ] = $thumb_alt;
+			}
+		}
+
 		$content = (string) $post->post_content;
 		if ( '' !== trim( $content ) ) {
 			// Classic content goes through wpautop when rendered; mimic it
