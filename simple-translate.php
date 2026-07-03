@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Translate
  * Plugin URI:        https://github.com/infojorgeml/simple-translate
  * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción en URLs con prefijo de idioma (/en/pagina/) o con ?lang=xx.
- * Version:           0.0.4
+ * Version:           0.0.5
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SIMPLE_TRANSLATE_VERSION', '0.0.4' );
+define( 'SIMPLE_TRANSLATE_VERSION', '0.0.5' );
 define( 'SIMPLE_TRANSLATE_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-detector.php';
@@ -29,6 +29,8 @@ final class Simple_Translate {
 
 	public static function init() {
 		Simple_Translate_Router::init();
+
+		add_action( 'wp_sitemaps_init', array( __CLASS__, 'register_sitemap_provider' ) );
 
 		if ( is_admin() ) {
 			require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-admin.php';
@@ -134,6 +136,67 @@ final class Simple_Translate {
 	 */
 	public static function get_translated_slug( $post_id, $lang ) {
 		return (string) get_post_meta( $post_id, self::SLUG_META_PREFIX . $lang, true );
+	}
+
+	/**
+	 * Idiomas de destino con alguna traducción guardada en el sitio.
+	 *
+	 * Se usa para no anunciar (hreflang, sitemap) idiomas vacíos, cuyas URLs
+	 * mostrarían contenido idéntico al original.
+	 *
+	 * @return string[]
+	 */
+	public static function languages_in_use() {
+		static $in_use = null;
+
+		if ( null !== $in_use ) {
+			return $in_use;
+		}
+
+		$found = array();
+
+		$ids = get_posts(
+			array(
+				'post_type'      => self::post_types(),
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_key'       => self::META_KEY,
+				'meta_compare'   => 'EXISTS',
+				'no_found_rows'  => true,
+			)
+		);
+
+		update_meta_cache( 'post', $ids );
+
+		foreach ( $ids as $post_id ) {
+			$data = get_post_meta( $post_id, self::META_KEY, true );
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+			foreach ( array_keys( $data ) as $lang ) {
+				$found[ $lang ] = true;
+			}
+		}
+
+		$in_use = array_values( array_intersect( self::get_languages(), array_keys( $found ) ) );
+
+		return $in_use;
+	}
+
+	/**
+	 * Añade a los sitemaps nativos un sitemap por idioma con las URLs traducidas.
+	 *
+	 * @param WP_Sitemaps $sitemaps Servidor de sitemaps de WordPress.
+	 */
+	public static function register_sitemap_provider( $sitemaps ) {
+		if ( empty( self::get_languages() ) || ! isset( $sitemaps->registry ) ) {
+			return;
+		}
+
+		require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-sitemap.php';
+
+		$sitemaps->registry->add_provider( 'translations', new Simple_Translate_Sitemap_Provider() );
 	}
 
 	/**

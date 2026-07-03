@@ -23,6 +23,7 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 - Las URLs de idioma se resuelven duplicando las reglas de reescritura de WordPress bajo cada prefijo (`/en/…`); las reglas se regeneran solas al activar el plugin o cambiar los idiomas. Si alguna URL de idioma diera 404, guarda en Ajustes → Enlaces permanentes para regenerarlas a mano.
 - Cada URL emite etiquetas `hreflang` (original, traducciones y `x-default`). En contenido individual solo se anuncian los idiomas con alguna traducción guardada. Un idioma de destino igual al original se ignora para no duplicar contenido.
 - Los slugs traducidos se guardan en un meta por idioma (`_simple_translate_slug_en`, …). La URL con el slug original bajo prefijo redirige 301 a la traducida, y los enlaces internos, hreflang y switcher usan siempre el slug traducido.
+- El sitemap nativo (`wp-sitemap.xml`) incluye un sitemap por idioma (`wp-sitemap-translations-en-1.xml`) con la portada del idioma y el contenido que tiene traducciones, usando los slugs traducidos. Requiere los sitemaps nativos de WordPress activos (los plugins SEO tipo Yoast los sustituyen por los suyos).
 - Con un idioma activo se filtran `the_title` y `the_content` sustituyendo cada texto por su traducción, y los permalinks se prefijan para mantener la navegación en ese idioma.
 - Por defecto funciona en entradas y páginas; se puede ampliar con el filtro `simple_translate_post_types`.
 
@@ -35,6 +36,5 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 - El idioma original siempre va sin prefijo (no hay ruta `/es/` para el origen).
 - En páginas jerárquicas solo se traduce el slug propio de cada página; los segmentos de las páginas ancestro mantienen su slug original.
 - No se valida que un slug traducido no colisione con el de otro contenido: si dos coinciden, gana el traducido.
-- Todavía no hay sitemap por idioma.
 
 Al desinstalar el plugin se borran la opción de idiomas y todas las traducciones guardadas.

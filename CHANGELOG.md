@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.5 — 2026-07-03
+
+- Sitemap por idioma integrado en los sitemaps nativos de WordPress: `wp-sitemap.xml` incluye ahora `wp-sitemap-translations-{idioma}-1.xml`.
+- Cada sitemap de idioma lista la portada del idioma y el contenido con traducciones guardadas (mismo criterio que hreflang), con el slug traducido y `lastmod`.
+- El contenido sin traducciones, protegido con contraseña o no publicado se excluye.
+
 ## 0.0.4 — 2026-07-03
 
 - Slugs traducidos: campo «Slug traducido» por idioma en la caja de traducciones; la URL pasa de `/en/sobre-nosotros/` a `/en/about-us/`.

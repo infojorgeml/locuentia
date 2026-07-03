@@ -51,7 +51,9 @@ class Simple_Translate_Frontend {
 			$base = Simple_Translate_Router::current_url_unlocalized( false );
 			$urls = array();
 
-			foreach ( $languages as $lang ) {
+			// En vistas de listado solo se anuncian idiomas con alguna
+			// traducción en el sitio; los vacíos mostrarían el original.
+			foreach ( Simple_Translate::languages_in_use() as $lang ) {
 				$urls[ $lang ] = Simple_Translate_Router::localize_url( $base, $lang );
 			}
 		}
