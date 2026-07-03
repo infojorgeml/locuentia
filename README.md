@@ -6,7 +6,7 @@ Traducción manual mínima para WordPress. Sin builders, sin editores visuales: 
 
 1. Activa el plugin.
 2. Ve a **Ajustes → Simple Translate**: indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`).
-3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título incluido) y un campo para cada idioma.
+3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título incluido) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
 4. Guarda. La página traducida vive en la URL con prefijo de idioma, por ejemplo:
    `https://misitio.local/en/mi-pagina/` (y la portada en `https://misitio.local/en/`).
    También funciona `?lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
@@ -22,6 +22,7 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 - Cada texto se identifica por un hash de su versión normalizada (espacios y tipografía unificados), y las traducciones se guardan como texto plano en el post meta `_simple_translate_translations`.
 - Las URLs de idioma se resuelven duplicando las reglas de reescritura de WordPress bajo cada prefijo (`/en/…`); las reglas se regeneran solas al activar el plugin o cambiar los idiomas. Si alguna URL de idioma diera 404, guarda en Ajustes → Enlaces permanentes para regenerarlas a mano.
 - Cada URL emite etiquetas `hreflang` (original, traducciones y `x-default`). En contenido individual solo se anuncian los idiomas con alguna traducción guardada. Un idioma de destino igual al original se ignora para no duplicar contenido.
+- Los slugs traducidos se guardan en un meta por idioma (`_simple_translate_slug_en`, …). La URL con el slug original bajo prefijo redirige 301 a la traducida, y los enlaces internos, hreflang y switcher usan siempre el slug traducido.
 - Con un idioma activo se filtran `the_title` y `the_content` sustituyendo cada texto por su traducción, y los permalinks se prefijan para mantener la navegación en ese idioma.
 - Por defecto funciona en entradas y páginas; se puede ampliar con el filtro `simple_translate_post_types`.
 
@@ -31,7 +32,9 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 - El texto con formato interno (negritas, enlaces) se divide en fragmentos: cada fragmento se traduce por separado.
 - Las traducciones son texto plano (sin HTML).
 - Si cambias un texto del contenido, su traducción anterior deja de aplicarse: guarda, recarga el editor y rellena el campo del texto nuevo.
-- El idioma original siempre va sin prefijo (no hay ruta `/es/` para el origen) y los slugs no se traducen (`/en/sobre-nosotros/`, no `/en/about-us/`).
+- El idioma original siempre va sin prefijo (no hay ruta `/es/` para el origen).
+- En páginas jerárquicas solo se traduce el slug propio de cada página; los segmentos de las páginas ancestro mantienen su slug original.
+- No se valida que un slug traducido no colisione con el de otro contenido: si dos coinciden, gana el traducido.
 - Todavía no hay sitemap por idioma.
 
 Al desinstalar el plugin se borran la opción de idiomas y todas las traducciones guardadas.

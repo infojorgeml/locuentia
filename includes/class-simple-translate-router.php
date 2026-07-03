@@ -13,10 +13,38 @@ class Simple_Translate_Router {
 
 	const FLUSH_FLAG = 'simple_translate_flush_rewrite';
 
+	/**
+	 * Mientras está a true, los filtros de permalink no aplican idioma
+	 * (permite obtener la URL original de un post).
+	 *
+	 * @var bool
+	 */
+	private static $suspended = false;
+
 	public static function init() {
 		add_filter( 'rewrite_rules_array', array( __CLASS__, 'add_language_rules' ) );
 		add_filter( 'query_vars', array( __CLASS__, 'register_query_var' ) );
 		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 20 );
+
+		// Resolución de slugs traducidos en la petición entrante.
+		add_filter( 'request', array( __CLASS__, 'resolve_translated_slug' ) );
+
+		// URLs salientes: con idioma activo, los enlaces internos llevan el
+		// prefijo y el slug traducido. En admin no hay idioma activo, así que
+		// estos filtros no alteran nada allí.
+		add_filter( 'page_link', array( __CLASS__, 'localize_post_url' ), 10, 2 );
+		add_filter( 'post_link', array( __CLASS__, 'localize_post_url' ), 10, 2 );
+		add_filter( 'post_type_link', array( __CLASS__, 'localize_post_url' ), 10, 2 );
+		add_filter( 'term_link', array( __CLASS__, 'localize_plain_url' ) );
+
+		// La redirección canónica de WordPress no conoce el prefijo y sacaría
+		// al visitante del idioma (p. ej. /en/ → /); se lo reponemos.
+		add_filter( 'redirect_canonical', array( __CLASS__, 'localize_canonical' ), 10, 2 );
+
+		// El core considera canónica la URL con el slug real, así que la
+		// redirección al slug traducido (/en/sobre-nosotros/ → /en/about-us/)
+		// hay que hacerla aquí.
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_untranslated_slug' ) );
 		add_action( 'add_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
 		add_action( 'update_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
 		add_action( 'add_option_' . Simple_Translate::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
@@ -169,6 +197,224 @@ class Simple_Translate_Router {
 		$relative = self::strip_language_prefix( substr( $url, strlen( $home ) ) );
 
 		return $home . $lang . '/' . ltrim( $relative, '/' );
+	}
+
+	/**
+	 * Resuelve slugs traducidos en la petición: /en/about-us/ carga la
+	 * entrada cuyo slug traducido en "en" es "about-us".
+	 *
+	 * @param array $query_vars Query vars parseadas de la URL.
+	 * @return array
+	 */
+	public static function resolve_translated_slug( $query_vars ) {
+		$lang = self::current_language();
+		if ( '' === $lang || ! is_array( $query_vars ) ) {
+			return $query_vars;
+		}
+
+		$requested = '';
+		if ( ! empty( $query_vars['pagename'] ) && is_string( $query_vars['pagename'] ) ) {
+			// En páginas jerárquicas (padre/hijo) solo se traduce el slug propio.
+			$parts     = explode( '/', trim( $query_vars['pagename'], '/' ) );
+			$requested = (string) end( $parts );
+		} elseif ( ! empty( $query_vars['name'] ) && is_string( $query_vars['name'] ) ) {
+			$requested = $query_vars['name'];
+		}
+
+		if ( '' === $requested ) {
+			return $query_vars;
+		}
+
+		$found = get_posts(
+			array(
+				'post_type'      => Simple_Translate::post_types(),
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'meta_key'       => Simple_Translate::SLUG_META_PREFIX . $lang,
+				'meta_value'     => $requested,
+				'no_found_rows'  => true,
+			)
+		);
+
+		if ( empty( $found ) ) {
+			return $query_vars;
+		}
+
+		$post = $found[0];
+
+		unset( $query_vars['pagename'], $query_vars['name'] );
+
+		if ( 'page' === $post->post_type ) {
+			$query_vars['page_id'] = $post->ID;
+		} else {
+			$query_vars['p'] = $post->ID;
+			if ( 'post' !== $post->post_type ) {
+				$query_vars['post_type'] = $post->post_type;
+			}
+		}
+
+		return $query_vars;
+	}
+
+	/**
+	 * Redirige 301 la URL con el slug original bajo prefijo de idioma a la
+	 * URL con el slug traducido: /en/sobre-nosotros/ → /en/about-us/.
+	 */
+	public static function redirect_untranslated_slug() {
+		$lang = self::current_language();
+		if ( '' === $lang || ! is_singular( Simple_Translate::post_types() ) ) {
+			return;
+		}
+
+		$post = get_queried_object();
+		if ( ! $post instanceof WP_Post || '' === (string) $post->post_name ) {
+			return;
+		}
+
+		$translated = Simple_Translate::get_translated_slug( $post->ID, $lang );
+		if ( '' === $translated || $translated === $post->post_name ) {
+			return;
+		}
+
+		if ( ! isset( $_SERVER['REQUEST_URI'] ) || ! is_string( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+
+		$request_path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+
+		// Sustituye el segmento del slug original conservando lo que le siga
+		// (paginación, feed…). Si no aparece, la URL ya usa el slug traducido.
+		$new_path = preg_replace(
+			'#/' . preg_quote( $post->post_name, '#' ) . '(/|$)#',
+			'/' . $translated . '$1',
+			$request_path,
+			1
+		);
+
+		if ( null === $new_path || $new_path === $request_path ) {
+			return;
+		}
+
+		$query  = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_QUERY );
+		$target = $new_path . ( '' !== $query ? '?' . $query : '' );
+
+		wp_safe_redirect( $target, 301 );
+		exit;
+	}
+
+	/**
+	 * Permalink original de un post (sin prefijo ni slug traducido).
+	 *
+	 * @param int|WP_Post $post Post.
+	 * @return string
+	 */
+	public static function unlocalized_permalink( $post ) {
+		self::$suspended = true;
+		$url             = get_permalink( $post );
+		self::$suspended = false;
+
+		return $url ? $url : '';
+	}
+
+	/**
+	 * Permalink de un post en un idioma (prefijo + slug traducido si tiene).
+	 * Con $lang vacío devuelve el permalink original.
+	 *
+	 * @param int|WP_Post $post Post.
+	 * @param string      $lang Código de idioma o ''.
+	 * @return string
+	 */
+	public static function permalink_for_language( $post, $lang ) {
+		$post = get_post( $post );
+		if ( ! $post ) {
+			return '';
+		}
+
+		$url = self::unlocalized_permalink( $post );
+		if ( '' === $lang || '' === $url ) {
+			return $url;
+		}
+
+		return self::swap_slug( self::localize_url( $url, $lang ), $post, $lang );
+	}
+
+	/**
+	 * Filtro de page_link/post_link/post_type_link: aplica el idioma activo
+	 * (prefijo + slug traducido).
+	 *
+	 * @param string      $url  Permalink original.
+	 * @param int|WP_Post $post Post del enlace (según el filtro).
+	 * @return string
+	 */
+	public static function localize_post_url( $url, $post ) {
+		if ( self::$suspended ) {
+			return $url;
+		}
+
+		$lang = self::current_language();
+		if ( '' === $lang ) {
+			return $url;
+		}
+
+		return self::swap_slug( self::localize_url( $url, $lang ), get_post( $post ), $lang );
+	}
+
+	/**
+	 * Filtro de term_link: con idioma activo solo se añade el prefijo.
+	 *
+	 * @param string $url URL del término.
+	 * @return string
+	 */
+	public static function localize_plain_url( $url ) {
+		if ( self::$suspended ) {
+			return $url;
+		}
+
+		$lang = self::current_language();
+
+		return '' === $lang ? $url : self::localize_url( $url, $lang );
+	}
+
+	/**
+	 * Mantiene el prefijo de idioma en las redirecciones canónicas.
+	 *
+	 * @param string|false $redirect_url  URL canónica propuesta.
+	 * @param string       $requested_url URL solicitada.
+	 * @return string|false
+	 */
+	public static function localize_canonical( $redirect_url, $requested_url ) {
+		$lang = self::current_language();
+		if ( '' === $lang || ! $redirect_url ) {
+			return $redirect_url;
+		}
+
+		return self::localize_url( $redirect_url, $lang );
+	}
+
+	/**
+	 * Sustituye el último segmento de la URL (el slug del post) por su
+	 * versión traducida, si existe.
+	 *
+	 * @param string       $url  URL ya con prefijo de idioma.
+	 * @param WP_Post|null $post Post al que pertenece la URL.
+	 * @param string       $lang Código de idioma.
+	 * @return string
+	 */
+	private static function swap_slug( $url, $post, $lang ) {
+		if ( ! $post instanceof WP_Post || '' === (string) $post->post_name ) {
+			return $url;
+		}
+
+		$translated = Simple_Translate::get_translated_slug( $post->ID, $lang );
+		if ( '' === $translated || $translated === $post->post_name ) {
+			return $url;
+		}
+
+		return preg_replace(
+			'#/' . preg_quote( $post->post_name, '#' ) . '(/?)$#',
+			'/' . $translated . '$1',
+			$url
+		);
 	}
 
 	/**

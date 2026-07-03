@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.4 — 2026-07-03
+
+- Slugs traducidos: campo «Slug traducido» por idioma en la caja de traducciones; la URL pasa de `/en/sobre-nosotros/` a `/en/about-us/`.
+- El slug sin traducir bajo prefijo (`/en/sobre-nosotros/`) redirige 301 a la URL con slug traducido.
+- Enlaces internos, hreflang, switcher y redirecciones canónicas usan el slug traducido.
+- En páginas jerárquicas se traduce el slug propio; los de las páginas ancestro se mantienen.
+
 ## 0.0.3 — 2026-07-03
 
 - Etiquetas `hreflang` en el `<head>`: cada URL anuncia su versión original, sus traducciones y `x-default`.

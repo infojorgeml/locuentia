@@ -195,6 +195,14 @@ class Simple_Translate_Admin {
 		foreach ( $languages as $lang ) {
 			/* translators: %s: código de idioma en mayúsculas. */
 			echo '<h3>' . esc_html( sprintf( __( 'Idioma: %s', 'simple-translate' ), strtoupper( $lang ) ) ) . '</h3>';
+
+			$slug = Simple_Translate::get_translated_slug( $post->ID, $lang );
+			echo '<p><label>' . esc_html__( 'Slug traducido (opcional):', 'simple-translate' ) . ' ';
+			echo '<input type="text" class="regular-text" name="simple_translate_slug[' . esc_attr( $lang ) . ']" value="' . esc_attr( $slug ) . '" placeholder="' . esc_attr( $post->post_name ) . '" />';
+			echo '</label><br /><span class="description">'
+				. esc_html( sprintf( /* translators: %s: código de idioma. */ __( 'Cambia la URL en este idioma, p. ej. /%s/mi-slug-traducido/. Vacío = mismo slug que el original.', 'simple-translate' ), $lang ) )
+				. '</span></p>';
+
 			echo '<table class="widefat striped">';
 			echo '<thead><tr>';
 			echo '<th style="width:50%">' . esc_html__( 'Texto original', 'simple-translate' ) . '</th>';
@@ -242,36 +250,54 @@ class Simple_Translate_Admin {
 			return;
 		}
 
-		if ( ! isset( $_POST['simple_translate_tr'] ) || ! is_array( $_POST['simple_translate_tr'] ) ) {
-			return;
-		}
-
-		$raw       = wp_unslash( $_POST['simple_translate_tr'] );
 		$languages = Simple_Translate::get_languages();
-		$clean     = array();
 
-		foreach ( $raw as $lang => $items ) {
-			$lang = Simple_Translate::sanitize_language_code( $lang );
-			if ( '' === $lang || ! in_array( $lang, $languages, true ) || ! is_array( $items ) ) {
-				continue;
-			}
+		if ( isset( $_POST['simple_translate_tr'] ) && is_array( $_POST['simple_translate_tr'] ) ) {
+			$raw   = wp_unslash( $_POST['simple_translate_tr'] );
+			$clean = array();
 
-			foreach ( $items as $hash => $value ) {
-				if ( ! is_string( $value ) || ! preg_match( '/^[a-f0-9]{32}$/', (string) $hash ) ) {
+			foreach ( $raw as $lang => $items ) {
+				$lang = Simple_Translate::sanitize_language_code( $lang );
+				if ( '' === $lang || ! in_array( $lang, $languages, true ) || ! is_array( $items ) ) {
 					continue;
 				}
 
-				$value = sanitize_textarea_field( $value );
-				if ( '' !== $value ) {
-					$clean[ $lang ][ $hash ] = $value;
+				foreach ( $items as $hash => $value ) {
+					if ( ! is_string( $value ) || ! preg_match( '/^[a-f0-9]{32}$/', (string) $hash ) ) {
+						continue;
+					}
+
+					$value = sanitize_textarea_field( $value );
+					if ( '' !== $value ) {
+						$clean[ $lang ][ $hash ] = $value;
+					}
 				}
+			}
+
+			if ( empty( $clean ) ) {
+				delete_post_meta( $post_id, Simple_Translate::META_KEY );
+			} else {
+				update_post_meta( $post_id, Simple_Translate::META_KEY, $clean );
 			}
 		}
 
-		if ( empty( $clean ) ) {
-			delete_post_meta( $post_id, Simple_Translate::META_KEY );
-		} else {
-			update_post_meta( $post_id, Simple_Translate::META_KEY, $clean );
+		if ( isset( $_POST['simple_translate_slug'] ) && is_array( $_POST['simple_translate_slug'] ) ) {
+			$raw_slugs = wp_unslash( $_POST['simple_translate_slug'] );
+
+			foreach ( $languages as $lang ) {
+				if ( ! isset( $raw_slugs[ $lang ] ) || ! is_string( $raw_slugs[ $lang ] ) ) {
+					continue;
+				}
+
+				$slug     = sanitize_title( $raw_slugs[ $lang ] );
+				$meta_key = Simple_Translate::SLUG_META_PREFIX . $lang;
+
+				if ( '' === $slug ) {
+					delete_post_meta( $post_id, $meta_key );
+				} else {
+					update_post_meta( $post_id, $meta_key, $slug );
+				}
+			}
 		}
 	}
 }

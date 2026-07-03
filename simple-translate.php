@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Translate
  * Plugin URI:        https://github.com/infojorgeml/simple-translate
  * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción en URLs con prefijo de idioma (/en/pagina/) o con ?lang=xx.
- * Version:           0.0.3
+ * Version:           0.0.4
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SIMPLE_TRANSLATE_VERSION', '0.0.3' );
+define( 'SIMPLE_TRANSLATE_VERSION', '0.0.4' );
 define( 'SIMPLE_TRANSLATE_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-detector.php';
@@ -25,6 +25,7 @@ final class Simple_Translate {
 	const OPTION_LANGUAGES = 'simple_translate_languages';
 	const OPTION_SOURCE    = 'simple_translate_source_language';
 	const META_KEY         = '_simple_translate_translations';
+	const SLUG_META_PREFIX = '_simple_translate_slug_';
 
 	public static function init() {
 		Simple_Translate_Router::init();
@@ -122,6 +123,17 @@ final class Simple_Translate {
 		}
 
 		return $data[ $lang ];
+	}
+
+	/**
+	 * Slug traducido de un post para un idioma ('' si no tiene).
+	 *
+	 * @param int    $post_id ID del post.
+	 * @param string $lang    Código de idioma.
+	 * @return string
+	 */
+	public static function get_translated_slug( $post_id, $lang ) {
+		return (string) get_post_meta( $post_id, self::SLUG_META_PREFIX . $lang, true );
 	}
 
 	/**

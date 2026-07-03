@@ -14,16 +14,6 @@ class Simple_Translate_Frontend {
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
 
-		// Los enlaces internos conservan el idioma activo al navegar.
-		add_filter( 'post_link', array( __CLASS__, 'localize_permalink' ) );
-		add_filter( 'page_link', array( __CLASS__, 'localize_permalink' ) );
-		add_filter( 'post_type_link', array( __CLASS__, 'localize_permalink' ) );
-		add_filter( 'term_link', array( __CLASS__, 'localize_permalink' ) );
-
-		// La redirección canónica de WordPress no conoce el prefijo y sacaría
-		// al visitante del idioma (p. ej. /en/ → /); se lo reponemos.
-		add_filter( 'redirect_canonical', array( __CLASS__, 'localize_canonical' ), 10, 2 );
-
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
 		add_shortcode( 'simple_translate_switcher', array( __CLASS__, 'render_switcher' ) );
@@ -47,24 +37,30 @@ class Simple_Translate_Frontend {
 		// traducción guardada; anunciar una "versión en inglés" idéntica al
 		// original sería una señal falsa para los buscadores.
 		if ( is_singular( Simple_Translate::post_types() ) ) {
-			$post    = get_post();
-			$targets = array();
+			$post = get_post();
+			$urls = array();
 
 			foreach ( $languages as $lang ) {
 				if ( ! empty( Simple_Translate::get_post_translations( $post->ID, $lang ) ) ) {
-					$targets[] = $lang;
+					$urls[ $lang ] = Simple_Translate_Router::permalink_for_language( $post, $lang );
 				}
 			}
+
+			$base = Simple_Translate_Router::permalink_for_language( $post, '' );
 		} else {
-			$targets = $languages;
+			$base = Simple_Translate_Router::current_url_unlocalized( false );
+			$urls = array();
+
+			foreach ( $languages as $lang ) {
+				$urls[ $lang ] = Simple_Translate_Router::localize_url( $base, $lang );
+			}
 		}
 
-		if ( empty( $targets ) ) {
+		if ( empty( $urls ) || '' === $base ) {
 			return;
 		}
 
 		$original = Simple_Translate::original_language();
-		$base     = Simple_Translate_Router::current_url_unlocalized( false );
 
 		printf(
 			'<link rel="alternate" hreflang="%s" href="%s" />' . "\n",
@@ -72,11 +68,11 @@ class Simple_Translate_Frontend {
 			esc_url( $base )
 		);
 
-		foreach ( $targets as $lang ) {
+		foreach ( $urls as $lang => $url ) {
 			printf(
 				'<link rel="alternate" hreflang="%s" href="%s" />' . "\n",
 				esc_attr( $lang ),
-				esc_url( Simple_Translate_Router::localize_url( $base, $lang ) )
+				esc_url( $url )
 			);
 		}
 
@@ -140,34 +136,6 @@ class Simple_Translate_Frontend {
 	}
 
 	/**
-	 * Prefija los permalinks con el idioma activo.
-	 *
-	 * @param string $url Permalink original.
-	 * @return string
-	 */
-	public static function localize_permalink( $url ) {
-		$lang = Simple_Translate_Router::current_language();
-
-		return '' === $lang ? $url : Simple_Translate_Router::localize_url( $url, $lang );
-	}
-
-	/**
-	 * Mantiene el prefijo de idioma en las redirecciones canónicas.
-	 *
-	 * @param string|false $redirect_url  URL canónica propuesta.
-	 * @param string       $requested_url URL solicitada.
-	 * @return string|false
-	 */
-	public static function localize_canonical( $redirect_url, $requested_url ) {
-		$lang = Simple_Translate_Router::current_language();
-		if ( '' === $lang || ! $redirect_url ) {
-			return $redirect_url;
-		}
-
-		return Simple_Translate_Router::localize_url( $redirect_url, $lang );
-	}
-
-	/**
 	 * Shortcode opcional [simple_translate_switcher]: lista de enlaces de idioma
 	 * a la página actual.
 	 *
@@ -180,7 +148,13 @@ class Simple_Translate_Frontend {
 		}
 
 		$current = Simple_Translate_Router::current_language();
-		$base    = Simple_Translate_Router::current_url_unlocalized();
+
+		// En contenido individual se usan los permalinks (con slug traducido);
+		// en el resto de vistas, la URL actual sin idioma.
+		$post = is_singular( Simple_Translate::post_types() ) ? get_post() : null;
+		$base = $post
+			? Simple_Translate_Router::permalink_for_language( $post, '' )
+			: Simple_Translate_Router::current_url_unlocalized();
 
 		$items = '<li><a href="' . esc_url( $base ) . '"'
 			. ( '' === $current ? ' style="font-weight:bold"' : '' ) . '>'
@@ -188,7 +162,11 @@ class Simple_Translate_Frontend {
 			. '</a></li>';
 
 		foreach ( $languages as $lang ) {
-			$items .= '<li><a href="' . esc_url( Simple_Translate_Router::localize_url( $base, $lang ) ) . '"'
+			$url = $post
+				? Simple_Translate_Router::permalink_for_language( $post, $lang )
+				: Simple_Translate_Router::localize_url( $base, $lang );
+
+			$items .= '<li><a href="' . esc_url( $url ) . '"'
 				. ( $lang === $current ? ' style="font-weight:bold"' : '' ) . '>'
 				. esc_html( strtoupper( $lang ) )
 				. '</a></li>';
