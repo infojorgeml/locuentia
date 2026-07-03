@@ -44,5 +44,5 @@ Al desinstalar el plugin se borran la opción de idiomas y todas las traduccione
 ## Desarrollo
 
 - Repo: [github.com/infojorgeml/locuentia](https://github.com/infojorgeml/locuentia). Licencia GPL-2.0.
-- `bin/build-zip.sh` genera `dist/locuentia.zip` listo para WordPress.org (sin archivos de desarrollo, vía los `export-ignore` de `.gitattributes`).
-- Antes de cada release: pasar [Plugin Check](https://wordpress.org/plugins/plugin-check/) sobre el ZIP generado.
+- `bin/build-zip.sh` genera `releases/locuentia-<versión>.zip` totalmente limpio (sin archivos de desarrollo, vía los `export-ignore` de `.gitattributes`); un ZIP por versión para probar en producción. La carpeta `releases/` no se versiona.
+- Antes de cada release: pasar [Plugin Check](https://wordpress.org/plugins/plugin-check/) sobre el ZIP generado. Para el envío inicial a WordPress.org, renombrar el ZIP a `locuentia.zip`.

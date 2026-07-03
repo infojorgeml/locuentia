@@ -5,4 +5,4 @@
 README.md export-ignore
 CHANGELOG.md export-ignore
 bin export-ignore
-dist export-ignore
+releases export-ignore

@@ -1,4 +1,5 @@
 === Locuentia – Multilingual Translations ===
+Contributors: jorgemml
 Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
