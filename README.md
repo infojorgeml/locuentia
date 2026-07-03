@@ -20,7 +20,7 @@ Empty fields show the original text (you do not need to translate everything).
 
 ## How it works
 
-- Texts are detected by walking the text nodes and the image `alt` attributes of the saved content (`script`, `style`, `code` and `pre` are ignored, as are fragments without letters, such as bare numbers).
+- Texts are detected by walking the text nodes and the image `alt` attributes of the content **as the front end renders it** (`the_content` filters: blocks, shortcodes and whatever builders hook there), with a safe fallback to the raw content. `script`, `style`, `code` and `pre` are ignored, as are fragments without letters and bare shortcodes.
 - The manual excerpt is translated as one more text; the automatic excerpt is already generated from the translated content.
 - Each text is identified by a hash of its normalized version (unified whitespace and typography), and translations are stored as plain text in the `_locuentia_translations` post meta.
 - Language URLs are resolved by duplicating the WordPress rewrite rules under each prefix (`/en/…`); the rules regenerate themselves when the plugin is activated or the languages change. If a language URL ever 404s, save Settings → Permalinks to regenerate them manually.
@@ -32,7 +32,7 @@ Empty fields show the original text (you do not need to translate everything).
 
 ## Limitations (on purpose, to keep it simple)
 
-- Only the title, content, manual excerpt and image `alt` texts (in-content and featured) are translated (including the browser tab `<title>`): menus and navigation, widgets, theme strings and dynamic shortcode/block output are not.
+- Only the title, content (as rendered, dynamic blocks and shortcode output included), manual excerpt and image `alt` texts (in-content and featured) are translated (including the browser tab `<title>`): menus and navigation, widgets and theme strings are not.
 - Text with inline formatting (bold, links) is split into fragments: each fragment is translated separately.
 - Translations are plain text (no HTML).
 - If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.

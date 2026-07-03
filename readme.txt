@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.13
+Stable tag: 0.0.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 
 **Features**
 
-* Detects translatable texts from the saved content of posts and pages, including the title, the manual excerpt and the image alt texts (featured image included).
+* Detects translatable texts from the content of posts and pages as it is actually rendered (blocks, shortcodes and whatever your builder outputs), including the title, the manual excerpt and the image alt texts (featured image included).
 * One translation field per text and language, in a meta box below the editor. Empty fields fall back to the original text.
 * Language-prefixed URLs: `/en/my-page/`, `/en/` for the home page (pretty permalinks required; `?locuentia_lang=xx` works as a fallback).
 * Optional translated slugs per language (`/en/about-us/` instead of `/en/sobre-nosotros/`), with automatic 301 redirects from the untranslated slug.
@@ -34,7 +34,7 @@ Each text is identified by a hash of its normalized version, so detection in the
 
 **Limitations (by design, to keep it simple)**
 
-* Only the post title, content, manual excerpt and image alt texts (in-content and featured) are translated: menus with custom labels, widgets, theme strings and dynamic shortcode/block output are not.
+* Only the post title, content (as rendered, dynamic blocks and shortcode output included), manual excerpt and image alt texts (in-content and featured) are translated: menus with custom labels, widgets and theme strings are not.
 * Text with inline formatting (bold, links) is split into fragments, each translated separately.
 * Translations are plain text (no HTML).
 * The original language always lives at the unprefixed URL.
@@ -58,7 +58,7 @@ No. All translations are written by you and stored in your database. The plugin 
 
 = Does it work with page builders? =
 
-It is designed for the block editor and the classic editor. It translates the text nodes of the rendered post content, so static builder output may partially work, but it is not a supported target.
+Detection and replacement both work on the rendered post content, so builders whose output goes through the standard content pipeline are covered without any specific integration. Builders that render entirely outside of it may only be partially detected.
 
 = Do I need to translate everything? =
 
@@ -69,6 +69,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.14 =
+* Texts are now detected from the rendered content (blocks, shortcodes and builder output on the standard pipeline), with a safe fallback to the raw content. Shortcode and dynamic block output becomes translatable; existing translations are unaffected.
+* Fixed two sanitization warnings reported by Plugin Check on the Translate screen.
 
 = 0.0.13 =
 * New Translate screen: a queue of all translatable content with per-language progress, and a focused full-width editor (same fields as the meta box, one language at a time, with tabs).

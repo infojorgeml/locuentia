@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.14 — 2026-07-03
+
+- **Detection from rendered content**: translatable texts are now discovered from the content as the front end renders it (`the_content` filters — blocks, shortcodes, and whatever page builders hook there), instead of the raw database content. Shortcode output and dynamic block output become detectable and translatable. Existing text hashes are unchanged, so stored translations keep working.
+- Safety net: if rendering fails or a third-party filter swallows the content, detection falls back to the raw content.
+- Fixed the two Plugin Check sanitization warnings on the Translate screen language parameter.
+
 ## 0.0.13 — 2026-07-03
 
 - **Translate screen** (new top-level view of the Locuentia menu): a queue of all translatable content with per-language progress badges and pagination, plus a focused full-width editor per post — same fields and saving pipeline as the meta box, one language at a time with tabs, translated slug included.

@@ -145,7 +145,7 @@ class Locuentia_Translator {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$lang = isset( $_GET['lang'] ) ? Locuentia::sanitize_language_code( wp_unslash( $_GET['lang'] ) ) : '';
+		$lang = isset( $_GET['lang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_GET['lang'] ) ) ) : '';
 		if ( '' === $lang || ! in_array( $lang, $languages, true ) ) {
 			$lang = $languages[0];
 		}
@@ -262,7 +262,7 @@ class Locuentia_Translator {
 			wp_die( esc_html__( 'You are not allowed to translate this content.', 'locuentia' ) );
 		}
 
-		$lang = isset( $_POST['lang'] ) ? Locuentia::sanitize_language_code( wp_unslash( $_POST['lang'] ) ) : '';
+		$lang = isset( $_POST['lang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_POST['lang'] ) ) ) : '';
 
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_translations().

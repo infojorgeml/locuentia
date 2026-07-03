@@ -402,18 +402,59 @@ class Locuentia_Admin {
 			}
 		}
 
-		$content = (string) $post->post_content;
+		$content = self::rendered_content( $post );
 		if ( '' !== trim( $content ) ) {
-			// Classic content goes through wpautop when rendered; mimic it
-			// here so the detected texts match the front end (block content
-			// does not need it).
-			if ( ! function_exists( 'has_blocks' ) || ! has_blocks( $content ) ) {
-				$content = wpautop( $content );
-			}
 			$strings = $strings + Locuentia_Detector::extract_strings( $content );
 		}
 
 		return $strings;
+	}
+
+	/**
+	 * Content of a post as the front end renders it (the_content filters:
+	 * blocks, shortcodes, wpautop and whatever builders hook there), so
+	 * detection matches what visitors actually see, whoever generates it.
+	 *
+	 * Falls back to the raw content if rendering fails or returns nothing.
+	 * Cached per request: list tables call this once per row.
+	 *
+	 * @param WP_Post $post Post.
+	 * @return string
+	 */
+	private static function rendered_content( $post ) {
+		static $cache = array();
+
+		if ( isset( $cache[ $post->ID ] ) ) {
+			return $cache[ $post->ID ];
+		}
+
+		$html = '';
+
+		try {
+			$backup          = isset( $GLOBALS['post'] ) ? $GLOBALS['post'] : null;
+			$GLOBALS['post'] = $post;
+			setup_postdata( $post );
+
+			$html = (string) apply_filters( 'the_content', $post->post_content );
+		} catch ( \Throwable $e ) {
+			$html = '';
+		} finally {
+			wp_reset_postdata();
+			$GLOBALS['post'] = $backup;
+		}
+
+		if ( '' === trim( $html ) && '' !== trim( (string) $post->post_content ) ) {
+			// A third-party filter swallowed the content: fall back to the
+			// raw content, mimicking the classic wpautop pipeline.
+			$html = (string) $post->post_content;
+			if ( ! has_blocks( $html ) ) {
+				$html = wpautop( $html );
+			}
+		}
+
+		$cache[ $post->ID ] = $html;
+
+		return $html;
 	}
 
 	/**
