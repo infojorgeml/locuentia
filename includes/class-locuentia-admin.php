@@ -435,6 +435,7 @@ class Locuentia_Admin {
 			$GLOBALS['post'] = $post;
 			setup_postdata( $post );
 
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- deliberately applying the core the_content filter to render like the front end.
 			$html = (string) apply_filters( 'the_content', $post->post_content );
 		} catch ( \Throwable $e ) {
 			$html = '';
