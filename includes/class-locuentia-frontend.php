@@ -1,11 +1,11 @@
 <?php
 /**
- * Frontend: sirve las traducciones cuando la URL lleva /xx/ o ?lang=xx.
+ * Frontend: sirve las traducciones cuando la URL lleva /xx/ o ?locuentia_lang=xx.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-class Simple_Translate_Frontend {
+class Locuentia_Frontend {
 
 	public static function init() {
 		// Prioridad 1 en the_title: hay que comparar el título antes de que
@@ -16,7 +16,20 @@ class Simple_Translate_Frontend {
 
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
-		add_shortcode( 'simple_translate_switcher', array( __CLASS__, 'render_switcher' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
+		add_shortcode( 'locuentia_switcher', array( __CLASS__, 'render_switcher' ) );
+	}
+
+	/**
+	 * Registra la hoja del selector; solo se encola si el shortcode se usa.
+	 */
+	public static function register_assets() {
+		wp_register_style(
+			'locuentia-switcher',
+			LOCUENTIA_URL . 'assets/css/switcher.css',
+			array(),
+			LOCUENTIA_VERSION
+		);
 	}
 
 	/**
@@ -28,7 +41,7 @@ class Simple_Translate_Frontend {
 			return;
 		}
 
-		$languages = Simple_Translate::get_languages();
+		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
 			return;
 		}
@@ -36,25 +49,25 @@ class Simple_Translate_Frontend {
 		// En contenido individual solo se anuncian los idiomas con alguna
 		// traducción guardada; anunciar una "versión en inglés" idéntica al
 		// original sería una señal falsa para los buscadores.
-		if ( is_singular( Simple_Translate::post_types() ) ) {
+		if ( is_singular( Locuentia::post_types() ) ) {
 			$post = get_post();
 			$urls = array();
 
 			foreach ( $languages as $lang ) {
-				if ( ! empty( Simple_Translate::get_post_translations( $post->ID, $lang ) ) ) {
-					$urls[ $lang ] = Simple_Translate_Router::permalink_for_language( $post, $lang );
+				if ( ! empty( Locuentia::get_post_translations( $post->ID, $lang ) ) ) {
+					$urls[ $lang ] = Locuentia_Router::permalink_for_language( $post, $lang );
 				}
 			}
 
-			$base = Simple_Translate_Router::permalink_for_language( $post, '' );
+			$base = Locuentia_Router::permalink_for_language( $post, '' );
 		} else {
-			$base = Simple_Translate_Router::current_url_unlocalized( false );
+			$base = Locuentia_Router::current_url_unlocalized( false );
 			$urls = array();
 
 			// En vistas de listado solo se anuncian idiomas con alguna
 			// traducción en el sitio; los vacíos mostrarían el original.
-			foreach ( Simple_Translate::languages_in_use() as $lang ) {
-				$urls[ $lang ] = Simple_Translate_Router::localize_url( $base, $lang );
+			foreach ( Locuentia::languages_in_use() as $lang ) {
+				$urls[ $lang ] = Locuentia_Router::localize_url( $base, $lang );
 			}
 		}
 
@@ -62,7 +75,7 @@ class Simple_Translate_Frontend {
 			return;
 		}
 
-		$original = Simple_Translate::original_language();
+		$original = Locuentia::original_language();
 
 		printf(
 			'<link rel="alternate" hreflang="%s" href="%s" />' . "\n",
@@ -92,22 +105,22 @@ class Simple_Translate_Frontend {
 	 * @return string
 	 */
 	public static function filter_title( $title, $post = 0 ) {
-		$lang = Simple_Translate_Router::current_language();
+		$lang = Locuentia_Router::current_language();
 		if ( '' === $lang || ! $post ) {
 			return $title;
 		}
 
 		$post = get_post( $post );
-		if ( ! $post || ! in_array( $post->post_type, Simple_Translate::post_types(), true ) ) {
+		if ( ! $post || ! in_array( $post->post_type, Locuentia::post_types(), true ) ) {
 			return $title;
 		}
 
-		$map = Simple_Translate::get_post_translations( $post->ID, $lang );
+		$map = Locuentia::get_post_translations( $post->ID, $lang );
 		if ( empty( $map ) ) {
 			return $title;
 		}
 
-		$hash = Simple_Translate_Detector::hash_text( $title );
+		$hash = Locuentia_Detector::hash_text( $title );
 
 		return isset( $map[ $hash ] ) ? $map[ $hash ] : $title;
 	}
@@ -119,61 +132,63 @@ class Simple_Translate_Frontend {
 	 * @return string
 	 */
 	public static function filter_content( $content ) {
-		$lang = Simple_Translate_Router::current_language();
+		$lang = Locuentia_Router::current_language();
 		if ( '' === $lang ) {
 			return $content;
 		}
 
 		$post = get_post();
-		if ( ! $post || ! in_array( $post->post_type, Simple_Translate::post_types(), true ) ) {
+		if ( ! $post || ! in_array( $post->post_type, Locuentia::post_types(), true ) ) {
 			return $content;
 		}
 
-		$map = Simple_Translate::get_post_translations( $post->ID, $lang );
+		$map = Locuentia::get_post_translations( $post->ID, $lang );
 		if ( empty( $map ) ) {
 			return $content;
 		}
 
-		return Simple_Translate_Detector::translate_html( $content, $map );
+		return Locuentia_Detector::translate_html( $content, $map );
 	}
 
 	/**
-	 * Shortcode opcional [simple_translate_switcher]: lista de enlaces de idioma
+	 * Shortcode opcional [locuentia_switcher]: lista de enlaces de idioma
 	 * a la página actual.
 	 *
 	 * @return string
 	 */
 	public static function render_switcher() {
-		$languages = Simple_Translate::get_languages();
+		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
 			return '';
 		}
 
-		$current = Simple_Translate_Router::current_language();
+		wp_enqueue_style( 'locuentia-switcher' );
+
+		$current = Locuentia_Router::current_language();
 
 		// En contenido individual se usan los permalinks (con slug traducido);
 		// en el resto de vistas, la URL actual sin idioma.
-		$post = is_singular( Simple_Translate::post_types() ) ? get_post() : null;
+		$post = is_singular( Locuentia::post_types() ) ? get_post() : null;
 		$base = $post
-			? Simple_Translate_Router::permalink_for_language( $post, '' )
-			: Simple_Translate_Router::current_url_unlocalized();
+			? Locuentia_Router::permalink_for_language( $post, '' )
+			: Locuentia_Router::current_url_unlocalized();
 
 		$items = '<li><a href="' . esc_url( $base ) . '"'
-			. ( '' === $current ? ' style="font-weight:bold"' : '' ) . '>'
-			. esc_html__( 'Original', 'simple-translate' )
+			. ( '' === $current ? ' class="locuentia-current"' : '' ) . '>'
+			. esc_html__( 'Original', 'locuentia' )
 			. '</a></li>';
 
 		foreach ( $languages as $lang ) {
 			$url = $post
-				? Simple_Translate_Router::permalink_for_language( $post, $lang )
-				: Simple_Translate_Router::localize_url( $base, $lang );
+				? Locuentia_Router::permalink_for_language( $post, $lang )
+				: Locuentia_Router::localize_url( $base, $lang );
 
 			$items .= '<li><a href="' . esc_url( $url ) . '"'
-				. ( $lang === $current ? ' style="font-weight:bold"' : '' ) . '>'
+				. ( $lang === $current ? ' class="locuentia-current"' : '' ) . '>'
 				. esc_html( strtoupper( $lang ) )
 				. '</a></li>';
 		}
 
-		return '<ul class="simple-translate-switcher">' . $items . '</ul>';
+		return '<ul class="locuentia-switcher">' . $items . '</ul>';
 	}
 }

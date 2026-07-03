@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.6 — 2026-07-03
+
+- Renombrado a **Locuentia** (antes prototipo "Simple Translate"), siguiendo las guías del directorio de WordPress.org: nombre distintivo y prefijo único `locuentia_` en todas las clases, opciones, metas, shortcode y query var.
+- La query var pública pasa de `lang` a `locuentia_lang` (evita colisiones con otros plugins de idiomas). Las URLs `/en/…` no cambian.
+- El sitemap por idioma pasa a `wp-sitemap-locuentia-{idioma}-1.xml`.
+- Estilos del selector y del metabox movidos a hojas encoladas (`assets/css/`), sin estilos inline.
+- Sanitización formal de `REQUEST_URI` y anotaciones PHPCS justificadas; se elimina la cabecera `Update URI`.
+- Nuevo `readme.txt` en inglés (formato WordPress.org), licencia GPL-2.0 en el repo, y `bin/build-zip.sh` que genera `dist/locuentia.zip` limpio para el envío.
+
 ## 0.0.5 — 2026-07-03
 
 - Sitemap por idioma integrado en los sitemaps nativos de WordPress: `wp-sitemap.xml` incluye ahora `wp-sitemap-translations-{idioma}-1.xml`.
@@ -25,7 +34,7 @@
 - URLs con prefijo de idioma: `/en/mi-pagina/`, `/en/` para la portada (requiere enlaces permanentes bonitos).
 - Los enlaces internos (menús de páginas, listados, permalinks) conservan el idioma mientras navegas.
 - Las redirecciones canónicas de WordPress respetan el prefijo de idioma.
-- El selector `[simple_translate_switcher]` enlaza a las URLs bonitas.
+- El selector `[locuentia_switcher]` enlaza a las URLs bonitas.
 - `?lang=xx` sigue funcionando como alternativa (y como único modo si no hay enlaces permanentes bonitos).
 - Las reglas de reescritura se regeneran solas al activar/desactivar el plugin o cambiar los idiomas.
 

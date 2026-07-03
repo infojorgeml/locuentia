@@ -9,9 +9,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Simple_Translate_Router {
+class Locuentia_Router {
 
-	const FLUSH_FLAG = 'simple_translate_flush_rewrite';
+	const FLUSH_FLAG = 'locuentia_flush_rewrite';
 
 	/**
 	 * Mientras está a true, los filtros de permalink no aplican idioma
@@ -45,14 +45,14 @@ class Simple_Translate_Router {
 		// redirección al slug traducido (/en/sobre-nosotros/ → /en/about-us/)
 		// hay que hacerla aquí.
 		add_action( 'template_redirect', array( __CLASS__, 'redirect_untranslated_slug' ) );
-		add_action( 'add_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
-		add_action( 'update_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
-		add_action( 'add_option_' . Simple_Translate::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
-		add_action( 'update_option_' . Simple_Translate::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'add_option_' . Locuentia::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'update_option_' . Locuentia::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'add_option_' . Locuentia::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'update_option_' . Locuentia::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
 	}
 
 	/**
-	 * Idioma activo de la petición: prefijo /xx/ de la URL o ?lang=xx.
+	 * Idioma activo de la petición: prefijo /xx/ de la URL o ?locuentia_lang=xx.
 	 *
 	 * @return string Código de idioma o '' para el texto original.
 	 */
@@ -65,14 +65,15 @@ class Simple_Translate_Router {
 
 		$cached = '';
 
-		$languages = Simple_Translate::get_languages();
+		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
 			return $cached;
 		}
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) ) {
-			$path      = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
-			$home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+			$request_uri = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+			$path        = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
+			$home_path   = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
 
 			if ( '' !== $home_path && 0 === strpos( $path, $home_path ) ) {
 				$path = substr( $path, strlen( $home_path ) );
@@ -85,9 +86,11 @@ class Simple_Translate_Router {
 			}
 		}
 
-		// Alternativa ?lang=xx. Lectura pública sin nonce: solo decide el idioma mostrado.
-		if ( isset( $_GET['lang'] ) && is_string( $_GET['lang'] ) ) {
-			$requested = Simple_Translate::sanitize_language_code( sanitize_key( wp_unslash( $_GET['lang'] ) ) );
+		// Alternativa ?locuentia_lang=xx. Lectura pública: solo decide el idioma mostrado.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['locuentia_lang'] ) && is_string( $_GET['locuentia_lang'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$requested = Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_GET['locuentia_lang'] ) ) );
 			if ( '' !== $requested && in_array( $requested, $languages, true ) ) {
 				$cached = $requested;
 			}
@@ -110,7 +113,7 @@ class Simple_Translate_Router {
 			return $rules;
 		}
 
-		$languages = Simple_Translate::get_languages();
+		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
 			return $rules;
 		}
@@ -123,7 +126,7 @@ class Simple_Translate_Router {
 
 		$localized = array(
 			// Portada de cada idioma: /en/
-			$group . '/?$' => 'index.php?lang=$matches[1]',
+			$group . '/?$' => 'index.php?locuentia_lang=$matches[1]',
 		);
 
 		foreach ( $rules as $regex => $query ) {
@@ -135,20 +138,20 @@ class Simple_Translate_Router {
 				$query
 			);
 
-			$localized[ $group . '/' . ltrim( $regex, '^' ) ] = $shifted . '&lang=$matches[1]';
+			$localized[ $group . '/' . ltrim( $regex, '^' ) ] = $shifted . '&locuentia_lang=$matches[1]';
 		}
 
 		return $localized + $rules;
 	}
 
 	/**
-	 * Registra lang como query var pública.
+	 * Registra locuentia_lang como query var pública.
 	 *
 	 * @param array $vars Query vars.
 	 * @return array
 	 */
 	public static function register_query_var( $vars ) {
-		$vars[] = 'lang';
+		$vars[] = 'locuentia_lang';
 		return $vars;
 	}
 
@@ -173,20 +176,21 @@ class Simple_Translate_Router {
 	 * Devuelve la URL apuntando a la versión en un idioma.
 	 *
 	 * Con enlaces permanentes bonitos inserta el prefijo (/en/…); sin ellos
-	 * recurre a ?lang=xx. Es idempotente: si la URL ya lleva idioma, lo cambia.
+	 * recurre a ?locuentia_lang=xx. Es idempotente: si la URL ya lleva idioma,
+	 * lo cambia.
 	 *
 	 * @param string $url  URL absoluta dentro del sitio.
 	 * @param string $lang Código de idioma de destino.
 	 * @return string
 	 */
 	public static function localize_url( $url, $lang ) {
-		$lang = Simple_Translate::sanitize_language_code( $lang );
-		if ( '' === $lang || ! in_array( $lang, Simple_Translate::get_languages(), true ) ) {
+		$lang = Locuentia::sanitize_language_code( $lang );
+		if ( '' === $lang || ! in_array( $lang, Locuentia::get_languages(), true ) ) {
 			return $url;
 		}
 
 		if ( ! get_option( 'permalink_structure' ) ) {
-			return add_query_arg( 'lang', $lang, $url );
+			return add_query_arg( 'locuentia_lang', $lang, $url );
 		}
 
 		$home = home_url( '/' );
@@ -227,11 +231,12 @@ class Simple_Translate_Router {
 
 		$found = get_posts(
 			array(
-				'post_type'      => Simple_Translate::post_types(),
+				'post_type'      => Locuentia::post_types(),
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
-				'meta_key'       => Simple_Translate::SLUG_META_PREFIX . $lang,
-				'meta_value'     => $requested,
+				// Búsqueda puntual por clave indexada, acotada a 1 resultado.
+				'meta_key'       => Locuentia::SLUG_META_PREFIX . $lang, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'     => $requested, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 				'no_found_rows'  => true,
 			)
 		);
@@ -262,7 +267,7 @@ class Simple_Translate_Router {
 	 */
 	public static function redirect_untranslated_slug() {
 		$lang = self::current_language();
-		if ( '' === $lang || ! is_singular( Simple_Translate::post_types() ) ) {
+		if ( '' === $lang || ! is_singular( Locuentia::post_types() ) ) {
 			return;
 		}
 
@@ -271,7 +276,7 @@ class Simple_Translate_Router {
 			return;
 		}
 
-		$translated = Simple_Translate::get_translated_slug( $post->ID, $lang );
+		$translated = Locuentia::get_translated_slug( $post->ID, $lang );
 		if ( '' === $translated || $translated === $post->post_name ) {
 			return;
 		}
@@ -280,7 +285,8 @@ class Simple_Translate_Router {
 			return;
 		}
 
-		$request_path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		$request_uri  = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+		$request_path = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
 
 		// Sustituye el segmento del slug original conservando lo que le siga
 		// (paginación, feed…). Si no aparece, la URL ya usa el slug traducido.
@@ -295,7 +301,7 @@ class Simple_Translate_Router {
 			return;
 		}
 
-		$query  = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_QUERY );
+		$query  = (string) wp_parse_url( $request_uri, PHP_URL_QUERY );
 		$target = $new_path . ( '' !== $query ? '?' . $query : '' );
 
 		wp_safe_redirect( $target, 301 );
@@ -405,7 +411,7 @@ class Simple_Translate_Router {
 			return $url;
 		}
 
-		$translated = Simple_Translate::get_translated_slug( $post->ID, $lang );
+		$translated = Locuentia::get_translated_slug( $post->ID, $lang );
 		if ( '' === $translated || $translated === $post->post_name ) {
 			return $url;
 		}
@@ -420,15 +426,15 @@ class Simple_Translate_Router {
 	/**
 	 * URL de la petición actual sin el prefijo de idioma (versión original).
 	 *
-	 * @param bool $keep_query Conservar la query string (sin el parámetro lang).
+	 * @param bool $keep_query Conservar la query string (sin el parámetro de idioma).
 	 * @return string
 	 */
 	public static function current_url_unlocalized( $keep_query = true ) {
 		$request = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
-			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) )
 			: '/';
 
-		$request = remove_query_arg( 'lang', $request );
+		$request = remove_query_arg( 'locuentia_lang', $request );
 
 		if ( ! $keep_query ) {
 			$request = (string) wp_parse_url( $request, PHP_URL_PATH );
@@ -451,7 +457,7 @@ class Simple_Translate_Router {
 	public static function strip_language_prefix( $relative ) {
 		$relative = (string) $relative;
 
-		foreach ( Simple_Translate::get_languages() as $code ) {
+		foreach ( Locuentia::get_languages() as $code ) {
 			if ( $relative === $code || $relative === $code . '/' ) {
 				return '';
 			}

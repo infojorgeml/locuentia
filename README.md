@@ -1,16 +1,18 @@
-# Simple Translate
+# Locuentia – Multilingual Translations
 
 Traducción manual mínima para WordPress. Sin builders, sin editores visuales: detecta los textos de cada entrada o página y te da un campo por texto e idioma en el propio editor.
+
+> Este README es la documentación de desarrollo (en español). El `readme.txt` en inglés es el que consume el directorio de WordPress.org.
 
 ## Cómo se usa
 
 1. Activa el plugin.
-2. Ve a **Ajustes → Simple Translate**: indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`).
+2. Ve a **Ajustes → Locuentia**: indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`).
 3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título incluido) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
 4. Guarda. La página traducida vive en la URL con prefijo de idioma, por ejemplo:
    `https://misitio.local/en/mi-pagina/` (y la portada en `https://misitio.local/en/`).
-   También funciona `?lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
-5. Opcional: coloca el shortcode `[simple_translate_switcher]` donde quieras un pequeño listado de enlaces para cambiar de idioma.
+   También funciona `?locuentia_lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
+5. Opcional: coloca el shortcode `[locuentia_switcher]` donde quieras un pequeño listado de enlaces para cambiar de idioma.
 
 Mientras navegas dentro de `/en/…`, los enlaces internos (menús de páginas, listados) mantienen el prefijo, así que la navegación se queda en ese idioma.
 
@@ -19,13 +21,13 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 ## Cómo funciona
 
 - Los textos se detectan recorriendo los nodos de texto del contenido guardado (se ignoran `script`, `style`, `code` y `pre`, y los fragmentos sin letras, como números sueltos).
-- Cada texto se identifica por un hash de su versión normalizada (espacios y tipografía unificados), y las traducciones se guardan como texto plano en el post meta `_simple_translate_translations`.
+- Cada texto se identifica por un hash de su versión normalizada (espacios y tipografía unificados), y las traducciones se guardan como texto plano en el post meta `_locuentia_translations`.
 - Las URLs de idioma se resuelven duplicando las reglas de reescritura de WordPress bajo cada prefijo (`/en/…`); las reglas se regeneran solas al activar el plugin o cambiar los idiomas. Si alguna URL de idioma diera 404, guarda en Ajustes → Enlaces permanentes para regenerarlas a mano.
 - Cada URL emite etiquetas `hreflang` (original, traducciones y `x-default`). En contenido individual solo se anuncian los idiomas con alguna traducción guardada. Un idioma de destino igual al original se ignora para no duplicar contenido.
-- Los slugs traducidos se guardan en un meta por idioma (`_simple_translate_slug_en`, …). La URL con el slug original bajo prefijo redirige 301 a la traducida, y los enlaces internos, hreflang y switcher usan siempre el slug traducido.
-- El sitemap nativo (`wp-sitemap.xml`) incluye un sitemap por idioma (`wp-sitemap-translations-en-1.xml`) con la portada del idioma y el contenido que tiene traducciones, usando los slugs traducidos. Requiere los sitemaps nativos de WordPress activos (los plugins SEO tipo Yoast los sustituyen por los suyos).
+- Los slugs traducidos se guardan en un meta por idioma (`_locuentia_slug_en`, …). La URL con el slug original bajo prefijo redirige 301 a la traducida, y los enlaces internos, hreflang y switcher usan siempre el slug traducido.
+- El sitemap nativo (`wp-sitemap.xml`) incluye un sitemap por idioma (`wp-sitemap-locuentia-en-1.xml`) con la portada del idioma y el contenido que tiene traducciones, usando los slugs traducidos. Requiere los sitemaps nativos de WordPress activos (los plugins SEO tipo Yoast los sustituyen por los suyos).
 - Con un idioma activo se filtran `the_title` y `the_content` sustituyendo cada texto por su traducción, y los permalinks se prefijan para mantener la navegación en ese idioma.
-- Por defecto funciona en entradas y páginas; se puede ampliar con el filtro `simple_translate_post_types`.
+- Por defecto funciona en entradas y páginas; se puede ampliar con el filtro `locuentia_post_types`.
 
 ## Limitaciones (a propósito, para mantenerlo simple)
 
@@ -38,3 +40,9 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 - No se valida que un slug traducido no colisione con el de otro contenido: si dos coinciden, gana el traducido.
 
 Al desinstalar el plugin se borran la opción de idiomas y todas las traducciones guardadas.
+
+## Desarrollo
+
+- Repo: [github.com/infojorgeml/locuentia](https://github.com/infojorgeml/locuentia). Licencia GPL-2.0.
+- `bin/build-zip.sh` genera `dist/locuentia.zip` listo para WordPress.org (sin archivos de desarrollo, vía los `export-ignore` de `.gitattributes`).
+- Antes de cada release: pasar [Plugin Check](https://wordpress.org/plugins/plugin-check/) sobre el ZIP generado.

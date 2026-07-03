@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Simple_Translate_Detector {
+class Locuentia_Detector {
 
 	/**
 	 * Normaliza un texto para identificarlo de forma estable.

@@ -1,0 +1,4 @@
+/* Selector de idioma de Locuentia — estilos mínimos, el tema manda. */
+.locuentia-switcher a.locuentia-current {
+	font-weight: 700;
+}

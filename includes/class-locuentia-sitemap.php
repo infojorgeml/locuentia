@@ -3,7 +3,7 @@
  * Proveedor de sitemap para las URLs traducidas.
  *
  * Se acopla a los sitemaps nativos de WordPress (wp-sitemap.xml) añadiendo
- * un sitemap por idioma: wp-sitemap-translations-en-1.xml, con la portada
+ * un sitemap por idioma: wp-sitemap-locuentia-en-1.xml, con la portada
  * del idioma y el contenido que tiene traducciones guardadas (el mismo
  * criterio que las etiquetas hreflang).
  *
@@ -12,10 +12,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
+class Locuentia_Sitemap_Provider extends WP_Sitemaps_Provider {
 
 	public function __construct() {
-		$this->name        = 'translations';
+		$this->name        = 'locuentia';
 		$this->object_type = 'post';
 	}
 
@@ -27,7 +27,7 @@ class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
 	public function get_object_subtypes() {
 		$subtypes = array();
 
-		foreach ( Simple_Translate::languages_in_use() as $lang ) {
+		foreach ( Locuentia::languages_in_use() as $lang ) {
 			$subtypes[ $lang ] = (object) array( 'name' => $lang );
 		}
 
@@ -75,9 +75,9 @@ class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
 	 * @return string Código válido o ''.
 	 */
 	private function validate_language( $object_subtype ) {
-		$lang = Simple_Translate::sanitize_language_code( $object_subtype );
+		$lang = Locuentia::sanitize_language_code( $object_subtype );
 
-		if ( '' === $lang || ! in_array( $lang, Simple_Translate::languages_in_use(), true ) ) {
+		if ( '' === $lang || ! in_array( $lang, Locuentia::languages_in_use(), true ) ) {
 			return '';
 		}
 
@@ -99,17 +99,18 @@ class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
 		}
 
 		$urls = array(
-			array( 'loc' => Simple_Translate_Router::localize_url( home_url( '/' ), $lang ) ),
+			array( 'loc' => Locuentia_Router::localize_url( home_url( '/' ), $lang ) ),
 		);
 
 		$ids = get_posts(
 			array(
-				'post_type'      => Simple_Translate::post_types(),
+				'post_type'      => Locuentia::post_types(),
 				'post_status'    => 'publish',
 				'has_password'   => false,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
-				'meta_key'       => Simple_Translate::META_KEY,
+				// EXISTS sobre clave indexada: solo posts con traducciones.
+				'meta_key'       => Locuentia::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_compare'   => 'EXISTS',
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
@@ -120,7 +121,7 @@ class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
 		update_meta_cache( 'post', $ids );
 
 		foreach ( $ids as $post_id ) {
-			if ( empty( Simple_Translate::get_post_translations( $post_id, $lang ) ) ) {
+			if ( empty( Locuentia::get_post_translations( $post_id, $lang ) ) ) {
 				continue;
 			}
 
@@ -130,7 +131,7 @@ class Simple_Translate_Sitemap_Provider extends WP_Sitemaps_Provider {
 			}
 
 			$entry = array(
-				'loc' => Simple_Translate_Router::permalink_for_language( $post, $lang ),
+				'loc' => Locuentia_Router::permalink_for_language( $post, $lang ),
 			);
 
 			if ( $post->post_modified_gmt && '0000-00-00 00:00:00' !== $post->post_modified_gmt ) {

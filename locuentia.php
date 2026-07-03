@@ -1,43 +1,44 @@
 <?php
 /**
- * Plugin Name:       Simple Translate
- * Plugin URI:        https://github.com/infojorgeml/simple-translate
- * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción en URLs con prefijo de idioma (/en/pagina/) o con ?lang=xx.
- * Version:           0.0.5
+ * Plugin Name:       Locuentia – Multilingual Translations
+ * Plugin URI:        https://github.com/infojorgeml/locuentia
+ * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
+ * Version:           0.0.6
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
  * License:           GPL-2.0-or-later
- * Text Domain:       simple-translate
- * Update URI:        false
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       locuentia
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SIMPLE_TRANSLATE_VERSION', '0.0.5' );
-define( 'SIMPLE_TRANSLATE_DIR', plugin_dir_path( __FILE__ ) );
+define( 'LOCUENTIA_VERSION', '0.0.6' );
+define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
+define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
-require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-detector.php';
-require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-router.php';
+require_once LOCUENTIA_DIR . 'includes/class-locuentia-detector.php';
+require_once LOCUENTIA_DIR . 'includes/class-locuentia-router.php';
 
-final class Simple_Translate {
+final class Locuentia {
 
-	const OPTION_LANGUAGES = 'simple_translate_languages';
-	const OPTION_SOURCE    = 'simple_translate_source_language';
-	const META_KEY         = '_simple_translate_translations';
-	const SLUG_META_PREFIX = '_simple_translate_slug_';
+	const OPTION_LANGUAGES = 'locuentia_languages';
+	const OPTION_SOURCE    = 'locuentia_source_language';
+	const META_KEY         = '_locuentia_translations';
+	const SLUG_META_PREFIX = '_locuentia_slug_';
 
 	public static function init() {
-		Simple_Translate_Router::init();
+		Locuentia_Router::init();
 
 		add_action( 'wp_sitemaps_init', array( __CLASS__, 'register_sitemap_provider' ) );
 
 		if ( is_admin() ) {
-			require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-admin.php';
-			Simple_Translate_Admin::init();
+			require_once LOCUENTIA_DIR . 'includes/class-locuentia-admin.php';
+			Locuentia_Admin::init();
 		} else {
-			require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-frontend.php';
-			Simple_Translate_Frontend::init();
+			require_once LOCUENTIA_DIR . 'includes/class-locuentia-frontend.php';
+			Locuentia_Frontend::init();
 		}
 	}
 
@@ -47,7 +48,7 @@ final class Simple_Translate {
 	 * @return string[]
 	 */
 	public static function post_types() {
-		return apply_filters( 'simple_translate_post_types', array( 'post', 'page' ) );
+		return apply_filters( 'locuentia_post_types', array( 'post', 'page' ) );
 	}
 
 	/**
@@ -161,7 +162,8 @@ final class Simple_Translate {
 				'post_status'    => 'publish',
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
-				'meta_key'       => self::META_KEY,
+				// EXISTS sobre clave indexada: solo posts con traducciones.
+				'meta_key'       => self::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_compare'   => 'EXISTS',
 				'no_found_rows'  => true,
 			)
@@ -194,9 +196,9 @@ final class Simple_Translate {
 			return;
 		}
 
-		require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-sitemap.php';
+		require_once LOCUENTIA_DIR . 'includes/class-locuentia-sitemap.php';
 
-		$sitemaps->registry->add_provider( 'translations', new Simple_Translate_Sitemap_Provider() );
+		$sitemaps->registry->add_provider( 'locuentia', new Locuentia_Sitemap_Provider() );
 	}
 
 	/**
@@ -204,20 +206,20 @@ final class Simple_Translate {
 	 * la próxima carga, cuando el plugin ya esté inicializado.
 	 */
 	public static function activate() {
-		update_option( Simple_Translate_Router::FLUSH_FLAG, 1 );
+		update_option( Locuentia_Router::FLUSH_FLAG, 1 );
 	}
 
 	/**
 	 * Al desactivar: regenera las reglas sin las variantes de idioma.
 	 */
 	public static function deactivate() {
-		remove_filter( 'rewrite_rules_array', array( 'Simple_Translate_Router', 'add_language_rules' ) );
+		remove_filter( 'rewrite_rules_array', array( 'Locuentia_Router', 'add_language_rules' ) );
 		flush_rewrite_rules();
-		delete_option( Simple_Translate_Router::FLUSH_FLAG );
+		delete_option( Locuentia_Router::FLUSH_FLAG );
 	}
 }
 
-add_action( 'plugins_loaded', array( 'Simple_Translate', 'init' ) );
+add_action( 'plugins_loaded', array( 'Locuentia', 'init' ) );
 
-register_activation_hook( __FILE__, array( 'Simple_Translate', 'activate' ) );
-register_deactivation_hook( __FILE__, array( 'Simple_Translate', 'deactivate' ) );
+register_activation_hook( __FILE__, array( 'Locuentia', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'Locuentia', 'deactivate' ) );
