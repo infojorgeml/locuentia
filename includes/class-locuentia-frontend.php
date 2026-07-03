@@ -26,7 +26,7 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Registra la hoja del selector; solo se encola si el shortcode se usa.
+	 * Registra los assets del selector; solo se encolan si el shortcode se usa.
 	 */
 	public static function register_assets() {
 		wp_register_style(
@@ -34,6 +34,14 @@ class Locuentia_Frontend {
 			LOCUENTIA_URL . 'assets/css/switcher.css',
 			array(),
 			LOCUENTIA_VERSION
+		);
+
+		wp_register_script(
+			'locuentia-switcher',
+			LOCUENTIA_URL . 'assets/js/switcher.js',
+			array(),
+			LOCUENTIA_VERSION,
+			true
 		);
 	}
 
@@ -184,18 +192,39 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Shortcode opcional [locuentia_switcher]: lista de enlaces de idioma
-	 * a la página actual.
+	 * Shortcode [locuentia_switcher]: selector de idioma de la página actual.
 	 *
+	 * Atributos:
+	 * - style:          list (por defecto) | inline | dropdown
+	 * - show:           name (nombre nativo, por defecto) | code (EN, ES…)
+	 * - hide_current:   yes para ocultar el idioma que se está viendo
+	 * - separator:      texto entre elementos en list/inline (p. ej. "|")
+	 * - original_label: etiqueta personalizada para el idioma original
+	 *
+	 * @param array $atts Atributos del shortcode.
 	 * @return string
 	 */
-	public static function render_switcher() {
+	public static function render_switcher( $atts = array() ) {
 		$languages = Locuentia::get_languages();
 		if ( empty( $languages ) ) {
 			return '';
 		}
 
-		wp_enqueue_style( 'locuentia-switcher' );
+		$atts = shortcode_atts(
+			array(
+				'style'          => 'list',
+				'show'           => 'name',
+				'hide_current'   => 'no',
+				'separator'      => '',
+				'original_label' => '',
+			),
+			$atts,
+			'locuentia_switcher'
+		);
+
+		$style        = in_array( $atts['style'], array( 'list', 'inline', 'dropdown' ), true ) ? $atts['style'] : 'list';
+		$show         = 'code' === $atts['show'] ? 'code' : 'name';
+		$hide_current = in_array( strtolower( (string) $atts['hide_current'] ), array( 'yes', '1', 'true' ), true );
 
 		$current = Locuentia_Router::current_language();
 
@@ -206,22 +235,76 @@ class Locuentia_Frontend {
 			? Locuentia_Router::permalink_for_language( $post, '' )
 			: Locuentia_Router::current_url_unlocalized();
 
-		$items = '<li><a href="' . esc_url( $base ) . '"'
-			. ( '' === $current ? ' class="locuentia-current"' : '' ) . '>'
-			. esc_html__( 'Original', 'locuentia' )
-			. '</a></li>';
+		$original_label = '' !== trim( (string) $atts['original_label'] )
+			? trim( (string) $atts['original_label'] )
+			: Locuentia::language_label( Locuentia::original_language(), $show );
+
+		$items = array(
+			array(
+				'label'   => $original_label,
+				'url'     => $base,
+				'current' => '' === $current,
+			),
+		);
 
 		foreach ( $languages as $lang ) {
-			$url = $post
-				? Locuentia_Router::permalink_for_language( $post, $lang )
-				: Locuentia_Router::localize_url( $base, $lang );
+			$items[] = array(
+				'label'   => Locuentia::language_label( $lang, $show ),
+				'url'     => $post
+					? Locuentia_Router::permalink_for_language( $post, $lang )
+					: Locuentia_Router::localize_url( $base, $lang ),
+				'current' => $lang === $current,
+			);
+		}
 
-			$items .= '<li><a href="' . esc_url( $url ) . '"'
-				. ( $lang === $current ? ' class="locuentia-current"' : '' ) . '>'
-				. esc_html( strtoupper( $lang ) )
+		if ( $hide_current ) {
+			$items = array_values(
+				array_filter(
+					$items,
+					function ( $item ) {
+						return ! $item['current'];
+					}
+				)
+			);
+		}
+
+		if ( empty( $items ) ) {
+			return '';
+		}
+
+		wp_enqueue_style( 'locuentia-switcher' );
+
+		if ( 'dropdown' === $style ) {
+			wp_enqueue_script( 'locuentia-switcher' );
+
+			$out = '<select class="locuentia-switcher locuentia-switcher--dropdown" aria-label="'
+				. esc_attr__( 'Seleccionar idioma', 'locuentia' ) . '">';
+
+			foreach ( $items as $item ) {
+				$out .= '<option value="' . esc_url( $item['url'] ) . '"'
+					. selected( $item['current'], true, false ) . '>'
+					. esc_html( $item['label'] )
+					. '</option>';
+			}
+
+			return $out . '</select>';
+		}
+
+		$separator = trim( (string) $atts['separator'] );
+		$sep_html  = '' !== $separator
+			? '<li class="locuentia-switcher-sep" aria-hidden="true">' . esc_html( $separator ) . '</li>'
+			: '';
+
+		$lis = array();
+		foreach ( $items as $item ) {
+			$lis[] = '<li><a href="' . esc_url( $item['url'] ) . '"'
+				. ( $item['current'] ? ' class="locuentia-current"' : '' ) . '>'
+				. esc_html( $item['label'] )
 				. '</a></li>';
 		}
 
-		return '<ul class="locuentia-switcher">' . $items . '</ul>';
+		return '<ul class="locuentia-switcher locuentia-switcher--' . esc_attr( $style ) . '">'
+			. implode( $sep_html, $lis )
+			. '</ul>';
 	}
 }

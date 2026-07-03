@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.7
+Stable tag: 0.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,7 +43,9 @@ Each text is identified by a hash of its normalized version, so detection in the
 1. Install and activate the plugin.
 2. Go to **Settings → Locuentia**: set the language your content is written in (for example `es`) and the target languages, comma separated (for example `en, fr`).
 3. Edit any post or page and fill in the **Translations** box below the editor.
-4. Visit the translated URL, for example `/en/my-page/`. Optionally place the `[locuentia_switcher]` shortcode wherever you want a small language switcher.
+4. Visit the translated URL, for example `/en/my-page/`. Optionally place the `[locuentia_switcher]` shortcode wherever you want a language switcher — being a shortcode it works in any editor or builder (Gutenberg, Elementor, Bricks, classic widgets).
+
+The switcher supports display options: `style` (list, inline or dropdown), `show` (native language name or code), `hide_current`, `separator` and `original_label`. For example: `[locuentia_switcher style="dropdown"]`. The full reference lives in the Locuentia admin page.
 
 == Frequently Asked Questions ==
 
@@ -64,6 +66,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.8 =
+* Locuentia now has its own top-level admin menu with the switcher documentation built in.
+* Language switcher display options: style (list, inline, dropdown), show (native name or code), hide_current, separator and original_label. Native names for ~70 languages, extensible via the locuentia_language_names filter.
 
 = 0.0.7 =
 * Manual excerpts are now translatable, served on listings and feeds. Automatic excerpts were already generated from the translated content.

@@ -7,12 +7,12 @@ Traducción manual mínima para WordPress. Sin builders, sin editores visuales: 
 ## Cómo se usa
 
 1. Activa el plugin.
-2. Ve a **Ajustes → Locuentia**: indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`).
+2. Ve a **Locuentia** (menú propio en la barra lateral): indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`). La misma página documenta el shortcode del selector.
 3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título, extracto manual y textos `alt` de las imágenes incluidos) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
 4. Guarda. La página traducida vive en la URL con prefijo de idioma, por ejemplo:
    `https://misitio.local/en/mi-pagina/` (y la portada en `https://misitio.local/en/`).
    También funciona `?locuentia_lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
-5. Opcional: coloca el shortcode `[locuentia_switcher]` donde quieras un pequeño listado de enlaces para cambiar de idioma.
+5. Opcional: coloca el shortcode `[locuentia_switcher]` donde quieras el selector de idioma. Al ser un shortcode funciona en cualquier builder (Gutenberg, Elementor, Bricks, widgets clásicos). Admite `style="list|inline|dropdown"`, `show="name|code"` (nombre nativo o código), `hide_current="yes"`, `separator="|"` y `original_label="…"`; el elemento activo lleva la clase `locuentia-current`.
 
 Mientras navegas dentro de `/en/…`, los enlaces internos (menús de páginas, listados) mantienen el prefijo, así que la navegación se queda en ese idioma.
 

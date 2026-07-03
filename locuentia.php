@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.7
+ * Version:           0.0.8
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.7' );
+define( 'LOCUENTIA_VERSION', '0.0.8' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -137,6 +137,107 @@ final class Locuentia {
 	 */
 	public static function get_translated_slug( $post_id, $lang ) {
 		return (string) get_post_meta( $post_id, self::SLUG_META_PREFIX . $lang, true );
+	}
+
+	/**
+	 * Nombres nativos de los idiomas más comunes (código ISO 639-1 => nombre).
+	 *
+	 * Ampliable/modificable con el filtro locuentia_language_names.
+	 *
+	 * @return array
+	 */
+	public static function language_names() {
+		$names = array(
+			'af'    => 'Afrikaans',
+			'am'    => 'አማርኛ',
+			'ar'    => 'العربية',
+			'az'    => 'Azərbaycan',
+			'bg'    => 'Български',
+			'bn'    => 'বাংলা',
+			'ca'    => 'Català',
+			'cs'    => 'Čeština',
+			'cy'    => 'Cymraeg',
+			'da'    => 'Dansk',
+			'de'    => 'Deutsch',
+			'el'    => 'Ελληνικά',
+			'en'    => 'English',
+			'es'    => 'Español',
+			'et'    => 'Eesti',
+			'eu'    => 'Euskara',
+			'fa'    => 'فارسی',
+			'fi'    => 'Suomi',
+			'fr'    => 'Français',
+			'ga'    => 'Gaeilge',
+			'gl'    => 'Galego',
+			'gu'    => 'ગુજરાતી',
+			'he'    => 'עברית',
+			'hi'    => 'हिन्दी',
+			'hr'    => 'Hrvatski',
+			'hu'    => 'Magyar',
+			'hy'    => 'Հայերեն',
+			'id'    => 'Bahasa Indonesia',
+			'is'    => 'Íslenska',
+			'it'    => 'Italiano',
+			'ja'    => '日本語',
+			'ka'    => 'ქართული',
+			'kk'    => 'Қазақша',
+			'km'    => 'ខ្មែរ',
+			'ko'    => '한국어',
+			'lt'    => 'Lietuvių',
+			'lv'    => 'Latviešu',
+			'mk'    => 'Македонски',
+			'ml'    => 'മലയാളം',
+			'mn'    => 'Монгол',
+			'mr'    => 'मराठी',
+			'ms'    => 'Bahasa Melayu',
+			'my'    => 'မြန်မာ',
+			'ne'    => 'नेपाली',
+			'nl'    => 'Nederlands',
+			'no'    => 'Norsk',
+			'pa'    => 'ਪੰਜਾਬੀ',
+			'pl'    => 'Polski',
+			'pt'    => 'Português',
+			'pt-br' => 'Português do Brasil',
+			'ro'    => 'Română',
+			'ru'    => 'Русский',
+			'si'    => 'සිංහල',
+			'sk'    => 'Slovenčina',
+			'sl'    => 'Slovenščina',
+			'sq'    => 'Shqip',
+			'sr'    => 'Српски',
+			'sv'    => 'Svenska',
+			'sw'    => 'Kiswahili',
+			'ta'    => 'தமிழ்',
+			'te'    => 'తెలుగు',
+			'th'    => 'ไทย',
+			'tr'    => 'Türkçe',
+			'uk'    => 'Українська',
+			'ur'    => 'اردو',
+			'uz'    => 'Oʻzbekcha',
+			'vi'    => 'Tiếng Việt',
+			'zh'    => '中文',
+			'zh-cn' => '简体中文',
+			'zh-tw' => '繁體中文',
+		);
+
+		return apply_filters( 'locuentia_language_names', $names );
+	}
+
+	/**
+	 * Etiqueta de un idioma para el selector.
+	 *
+	 * @param string $code Código de idioma.
+	 * @param string $show 'name' (nombre nativo) o 'code' (código en mayúsculas).
+	 * @return string
+	 */
+	public static function language_label( $code, $show = 'name' ) {
+		if ( 'code' === $show ) {
+			return strtoupper( $code );
+		}
+
+		$names = self::language_names();
+
+		return isset( $names[ $code ] ) ? $names[ $code ] : strtoupper( $code );
 	}
 
 	/**

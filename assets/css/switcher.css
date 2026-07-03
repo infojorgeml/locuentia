@@ -1,4 +1,25 @@
 /* Selector de idioma de Locuentia — estilos mínimos, el tema manda. */
+ul.locuentia-switcher {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+ul.locuentia-switcher li {
+	margin: 0;
+}
+
+ul.locuentia-switcher--inline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5em;
+}
+
 .locuentia-switcher a.locuentia-current {
 	font-weight: 700;
+}
+
+.locuentia-switcher--dropdown {
+	max-width: 100%;
 }

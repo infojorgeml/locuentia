@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.8 — 2026-07-03
+
+- Locuentia tiene ahora su propio menú en la barra lateral del admin (icono de traducción), en vez de vivir bajo Ajustes.
+- La página de admin documenta el shortcode del selector con todos sus atributos y ejemplos.
+- Selector de idioma con opciones de visualización: `style` (list, inline, dropdown), `show` (nombre nativo o código), `hide_current`, `separator` y `original_label`.
+- El selector muestra por defecto el nombre nativo de cada idioma (Español, English, Українська…) con un mapa de ~70 idiomas ampliable vía el filtro `locuentia_language_names`.
+- El modo dropdown navega al cambiar (JS mínimo encolado solo cuando se usa).
+
 ## 0.0.7 — 2026-07-03
 
 - Se traduce el **extracto manual**: aparece como un texto más en la caja de traducciones y se sirve traducido en listados y feeds. El extracto automático ya se generaba del contenido traducido.

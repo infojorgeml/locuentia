@@ -111,12 +111,14 @@ class Locuentia_Admin {
 	}
 
 	public static function register_settings_page() {
-		add_options_page(
+		add_menu_page(
 			__( 'Locuentia', 'locuentia' ),
 			__( 'Locuentia', 'locuentia' ),
 			'manage_options',
 			'locuentia',
-			array( __CLASS__, 'render_settings_page' )
+			array( __CLASS__, 'render_settings_page' ),
+			'dashicons-translation',
+			80
 		);
 	}
 
@@ -127,6 +129,7 @@ class Locuentia_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Locuentia', 'locuentia' ); ?></h1>
+
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'locuentia' );
@@ -134,9 +137,62 @@ class Locuentia_Admin {
 				submit_button();
 				?>
 			</form>
-			<p class="description">
-				<?php esc_html_e( 'Las traducciones se rellenan al editar cada entrada o página, y se sirven en URLs con prefijo de idioma, por ejemplo: /en/mi-pagina/ (también funciona ?locuentia_lang=en).', 'locuentia' ); ?>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Cómo se traducen los contenidos', 'locuentia' ); ?></h2>
+			<p><?php esc_html_e( 'Las traducciones se rellenan al editar cada entrada o página (caja «Traducciones» bajo el editor) y se sirven en URLs con prefijo de idioma, por ejemplo: /en/mi-pagina/ (también funciona ?locuentia_lang=en). La portada de cada idioma vive en /en/, /fr/, etc.', 'locuentia' ); ?></p>
+
+			<h2><?php esc_html_e( 'Selector de idioma (shortcode)', 'locuentia' ); ?></h2>
+			<p><?php esc_html_e( 'Coloca el shortcode donde quieras el selector. Al ser un shortcode funciona en cualquier editor o builder: bloque «Shortcode» de Gutenberg, widget de Elementor, elemento de Bricks, widgets clásicos…', 'locuentia' ); ?></p>
+
+			<p><code>[locuentia_switcher]</code></p>
+
+			<table class="widefat striped">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Atributo', 'locuentia' ); ?></th>
+						<th><?php esc_html_e( 'Valores', 'locuentia' ); ?></th>
+						<th><?php esc_html_e( 'Qué hace', 'locuentia' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><code>style</code></td>
+						<td><code>list</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>inline</code>, <code>dropdown</code></td>
+						<td><?php esc_html_e( 'Lista vertical, lista horizontal o menú desplegable.', 'locuentia' ); ?></td>
+					</tr>
+					<tr>
+						<td><code>show</code></td>
+						<td><code>name</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>code</code></td>
+						<td><?php esc_html_e( 'Nombre nativo del idioma (Español, English…) o su código (ES, EN…).', 'locuentia' ); ?></td>
+					</tr>
+					<tr>
+						<td><code>hide_current</code></td>
+						<td><code>no</code> <?php esc_html_e( '(por defecto)', 'locuentia' ); ?>, <code>yes</code></td>
+						<td><?php esc_html_e( 'Oculta el idioma que se está viendo.', 'locuentia' ); ?></td>
+					</tr>
+					<tr>
+						<td><code>separator</code></td>
+						<td><?php esc_html_e( 'cualquier texto', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'Separador entre elementos en los estilos list e inline, p. ej. "|" o "·".', 'locuentia' ); ?></td>
+					</tr>
+					<tr>
+						<td><code>original_label</code></td>
+						<td><?php esc_html_e( 'cualquier texto', 'locuentia' ); ?></td>
+						<td><?php esc_html_e( 'Etiqueta del idioma original (por defecto, su nombre nativo).', 'locuentia' ); ?></td>
+					</tr>
+				</tbody>
+			</table>
+
+			<p>
+				<?php esc_html_e( 'Ejemplos:', 'locuentia' ); ?>
+				<code>[locuentia_switcher style="dropdown"]</code>
+				<code>[locuentia_switcher style="inline" show="code" separator="|"]</code>
+				<code>[locuentia_switcher style="inline" hide_current="yes"]</code>
 			</p>
+
+			<p class="description"><?php esc_html_e( 'El elemento del idioma activo lleva la clase locuentia-current por si quieres darle tu propio estilo desde el tema.', 'locuentia' ); ?></p>
 		</div>
 		<?php
 	}
