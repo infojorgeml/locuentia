@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.3 — 2026-07-03
+
+- Etiquetas `hreflang` en el `<head>`: cada URL anuncia su versión original, sus traducciones y `x-default`.
+- En entradas/páginas solo se anuncian los idiomas que tienen alguna traducción guardada (no se anuncian versiones idénticas al original).
+- Nuevo ajuste «Idioma del contenido original»: por defecto se deriva del idioma del sitio, pero es configurable porque no siempre coinciden (por ejemplo, un WordPress instalado en inglés con contenido en español).
+- Si un idioma de destino coincide con el original, se ignora: el original ya vive sin prefijo, y duplicarlo bajo `/xx/` crearía contenido clonado y hreflang repetidos.
+
 ## 0.0.2 — 2026-07-03
 
 - URLs con prefijo de idioma: `/en/mi-pagina/`, `/en/` para la portada (requiere enlaces permanentes bonitos).

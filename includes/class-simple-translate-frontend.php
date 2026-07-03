@@ -24,7 +24,66 @@ class Simple_Translate_Frontend {
 		// al visitante del idioma (p. ej. /en/ → /); se lo reponemos.
 		add_filter( 'redirect_canonical', array( __CLASS__, 'localize_canonical' ), 10, 2 );
 
+		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
+
 		add_shortcode( 'simple_translate_switcher', array( __CLASS__, 'render_switcher' ) );
+	}
+
+	/**
+	 * Etiquetas hreflang: anuncia a los buscadores todas las versiones de
+	 * idioma de la URL actual, incluida la propia.
+	 */
+	public static function print_hreflang() {
+		if ( is_404() || is_search() || is_preview() || is_embed() ) {
+			return;
+		}
+
+		$languages = Simple_Translate::get_languages();
+		if ( empty( $languages ) ) {
+			return;
+		}
+
+		// En contenido individual solo se anuncian los idiomas con alguna
+		// traducción guardada; anunciar una "versión en inglés" idéntica al
+		// original sería una señal falsa para los buscadores.
+		if ( is_singular( Simple_Translate::post_types() ) ) {
+			$post    = get_post();
+			$targets = array();
+
+			foreach ( $languages as $lang ) {
+				if ( ! empty( Simple_Translate::get_post_translations( $post->ID, $lang ) ) ) {
+					$targets[] = $lang;
+				}
+			}
+		} else {
+			$targets = $languages;
+		}
+
+		if ( empty( $targets ) ) {
+			return;
+		}
+
+		$original = Simple_Translate::original_language();
+		$base     = Simple_Translate_Router::current_url_unlocalized( false );
+
+		printf(
+			'<link rel="alternate" hreflang="%s" href="%s" />' . "\n",
+			esc_attr( $original ),
+			esc_url( $base )
+		);
+
+		foreach ( $targets as $lang ) {
+			printf(
+				'<link rel="alternate" hreflang="%s" href="%s" />' . "\n",
+				esc_attr( $lang ),
+				esc_url( Simple_Translate_Router::localize_url( $base, $lang ) )
+			);
+		}
+
+		printf(
+			'<link rel="alternate" hreflang="x-default" href="%s" />' . "\n",
+			esc_url( $base )
+		);
 	}
 
 	/**
@@ -121,19 +180,7 @@ class Simple_Translate_Frontend {
 		}
 
 		$current = Simple_Translate_Router::current_language();
-
-		// URL actual sin idioma, como base para todas las variantes.
-		$request = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
-			? wp_unslash( $_SERVER['REQUEST_URI'] )
-			: '/';
-		$request = remove_query_arg( 'lang', $request );
-
-		$home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
-		if ( '' !== $home_path && 0 === strpos( $request, $home_path ) ) {
-			$request = substr( $request, strlen( $home_path ) );
-		}
-
-		$base = home_url( '/' . Simple_Translate_Router::strip_language_prefix( ltrim( $request, '/' ) ) );
+		$base    = Simple_Translate_Router::current_url_unlocalized();
 
 		$items = '<li><a href="' . esc_url( $base ) . '"'
 			. ( '' === $current ? ' style="font-weight:bold"' : '' ) . '>'

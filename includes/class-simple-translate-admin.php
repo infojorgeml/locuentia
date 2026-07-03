@@ -27,7 +27,25 @@ class Simple_Translate_Admin {
 			)
 		);
 
+		register_setting(
+			'simple_translate',
+			Simple_Translate::OPTION_SOURCE,
+			array(
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => array( 'Simple_Translate', 'sanitize_language_code' ),
+			)
+		);
+
 		add_settings_section( 'simple_translate_main', '', '__return_false', 'simple-translate' );
+
+		add_settings_field(
+			'simple_translate_source',
+			__( 'Idioma del contenido original', 'simple-translate' ),
+			array( __CLASS__, 'render_source_field' ),
+			'simple-translate',
+			'simple_translate_main'
+		);
 
 		add_settings_field(
 			'simple_translate_languages',
@@ -36,6 +54,14 @@ class Simple_Translate_Admin {
 			'simple-translate',
 			'simple_translate_main'
 		);
+	}
+
+	public static function render_source_field() {
+		$value = get_option( Simple_Translate::OPTION_SOURCE, '' );
+		?>
+		<input type="text" class="small-text" name="<?php echo esc_attr( Simple_Translate::OPTION_SOURCE ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( Simple_Translate::original_language() ); ?>" />
+		<p class="description"><?php esc_html_e( 'Código del idioma en que escribes el contenido (por ejemplo: es). Si se deja vacío se usa el idioma del sitio. Se emplea en las etiquetas hreflang y evita duplicar el original bajo /xx/.', 'simple-translate' ); ?></p>
+		<?php
 	}
 
 	/**

@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Translate
  * Plugin URI:        https://github.com/infojorgeml/simple-translate
  * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción en URLs con prefijo de idioma (/en/pagina/) o con ?lang=xx.
- * Version:           0.0.2
+ * Version:           0.0.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SIMPLE_TRANSLATE_VERSION', '0.0.2' );
+define( 'SIMPLE_TRANSLATE_VERSION', '0.0.3' );
 define( 'SIMPLE_TRANSLATE_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-detector.php';
@@ -23,6 +23,7 @@ require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-router.php'
 final class Simple_Translate {
 
 	const OPTION_LANGUAGES = 'simple_translate_languages';
+	const OPTION_SOURCE    = 'simple_translate_source_language';
 	const META_KEY         = '_simple_translate_translations';
 
 	public static function init() {
@@ -47,17 +48,40 @@ final class Simple_Translate {
 	}
 
 	/**
+	 * Idioma del contenido original (código, p. ej. 'es').
+	 *
+	 * Configurable en ajustes; por defecto se deriva del locale del sitio,
+	 * que no siempre coincide con el idioma en que está escrito el contenido.
+	 *
+	 * @return string
+	 */
+	public static function original_language() {
+		$code = self::sanitize_language_code( get_option( self::OPTION_SOURCE, '' ) );
+
+		if ( '' === $code ) {
+			$code = self::sanitize_language_code( strtok( strtolower( get_locale() ), '_' ) );
+		}
+
+		return '' === $code ? 'en' : $code;
+	}
+
+	/**
 	 * Idiomas de destino configurados, p. ej. array( 'en', 'fr' ).
+	 *
+	 * Excluye el idioma original: su contenido ya vive en las URLs sin
+	 * prefijo, y duplicarlo bajo /xx/ generaría contenido clonado y
+	 * etiquetas hreflang repetidas.
 	 *
 	 * @return string[]
 	 */
 	public static function get_languages() {
-		$raw   = get_option( self::OPTION_LANGUAGES, 'en' );
-		$codes = array();
+		$raw      = get_option( self::OPTION_LANGUAGES, 'en' );
+		$original = self::original_language();
+		$codes    = array();
 
 		foreach ( explode( ',', (string) $raw ) as $part ) {
 			$code = self::sanitize_language_code( $part );
-			if ( '' !== $code ) {
+			if ( '' !== $code && $code !== $original ) {
 				$codes[ $code ] = $code;
 			}
 		}

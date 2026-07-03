@@ -19,6 +19,8 @@ class Simple_Translate_Router {
 		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 20 );
 		add_action( 'add_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
 		add_action( 'update_option_' . Simple_Translate::OPTION_LANGUAGES, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'add_option_' . Simple_Translate::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
+		add_action( 'update_option_' . Simple_Translate::OPTION_SOURCE, array( __CLASS__, 'schedule_flush' ) );
 	}
 
 	/**
@@ -167,6 +169,31 @@ class Simple_Translate_Router {
 		$relative = self::strip_language_prefix( substr( $url, strlen( $home ) ) );
 
 		return $home . $lang . '/' . ltrim( $relative, '/' );
+	}
+
+	/**
+	 * URL de la petición actual sin el prefijo de idioma (versión original).
+	 *
+	 * @param bool $keep_query Conservar la query string (sin el parámetro lang).
+	 * @return string
+	 */
+	public static function current_url_unlocalized( $keep_query = true ) {
+		$request = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			: '/';
+
+		$request = remove_query_arg( 'lang', $request );
+
+		if ( ! $keep_query ) {
+			$request = (string) wp_parse_url( $request, PHP_URL_PATH );
+		}
+
+		$home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		if ( '' !== $home_path && 0 === strpos( $request, $home_path ) ) {
+			$request = substr( $request, strlen( $home_path ) );
+		}
+
+		return home_url( '/' . self::strip_language_prefix( ltrim( $request, '/' ) ) );
 	}
 
 	/**
