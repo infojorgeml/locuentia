@@ -87,6 +87,13 @@ class Locuentia_Detector {
 			}
 		}
 
+		foreach ( self::image_alts( $dom ) as $img ) {
+			$alt = self::normalize_text( $img->getAttribute( 'alt' ) );
+			if ( self::is_translatable( $alt ) ) {
+				$strings[ md5( $alt ) ] = $alt;
+			}
+		}
+
 		return $strings;
 	}
 
@@ -129,6 +136,21 @@ class Locuentia_Detector {
 			$changed         = true;
 		}
 
+		foreach ( self::image_alts( $dom ) as $img ) {
+			$alt = self::normalize_text( $img->getAttribute( 'alt' ) );
+			if ( '' === $alt ) {
+				continue;
+			}
+
+			$hash = md5( $alt );
+			if ( ! isset( $map[ $hash ] ) || '' === (string) $map[ $hash ] ) {
+				continue;
+			}
+
+			$img->setAttribute( 'alt', (string) $map[ $hash ] );
+			$changed = true;
+		}
+
 		if ( ! $changed ) {
 			return $html;
 		}
@@ -162,6 +184,19 @@ class Locuentia_Detector {
 		libxml_use_internal_errors( $previous );
 
 		return $loaded ? $dom : null;
+	}
+
+	/**
+	 * Imágenes del contenido con atributo alt no vacío.
+	 *
+	 * @param DOMDocument $dom Documento cargado.
+	 * @return DOMNodeList|array
+	 */
+	private static function image_alts( DOMDocument $dom ) {
+		$xpath = new DOMXPath( $dom );
+		$nodes = $xpath->query( '//body//img[@alt and string-length(@alt) > 0]' );
+
+		return $nodes ? $nodes : array();
 	}
 
 	/**

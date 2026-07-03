@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.6
+Stable tag: 0.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 
 **Features**
 
-* Detects translatable texts (title included) from the saved content of posts and pages.
+* Detects translatable texts from the saved content of posts and pages, including the title, the manual excerpt and the image alt texts.
 * One translation field per text and language, in a meta box below the editor. Empty fields fall back to the original text.
 * Language-prefixed URLs: `/en/my-page/`, `/en/` for the home page (pretty permalinks required; `?locuentia_lang=xx` works as a fallback).
 * Optional translated slugs per language (`/en/about-us/` instead of `/en/sobre-nosotros/`), with automatic 301 redirects from the untranslated slug.
@@ -32,7 +32,7 @@ Each text is identified by a hash of its normalized version, so detection in the
 
 **Limitations (by design, to keep it simple)**
 
-* Only the post title and content are translated: menus with custom labels, widgets, theme strings and dynamic shortcode/block output are not.
+* Only the post title, content, manual excerpt and in-content image alt texts are translated: menus with custom labels, widgets, theme strings, featured image alt texts and dynamic shortcode/block output are not.
 * Text with inline formatting (bold, links) is split into fragments, each translated separately.
 * Translations are plain text (no HTML).
 * The original language always lives at the unprefixed URL.
@@ -64,6 +64,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.7 =
+* Manual excerpts are now translatable, served on listings and feeds. Automatic excerpts were already generated from the translated content.
+* Image alt texts in the post content are now detected and translated.
 
 = 0.0.6 =
 * Renamed to Locuentia (formerly a working prototype called Simple Translate). All options, meta keys and identifiers now use the `locuentia_` prefix.

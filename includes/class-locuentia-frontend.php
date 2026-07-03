@@ -14,6 +14,11 @@ class Locuentia_Frontend {
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
 
+		// Prioridad 5: antes de que wp_trim_excerpt (10) genere el extracto
+		// automático. El manual se traduce por hash; el automático se recorta
+		// del contenido, que ya pasa por filter_content.
+		add_filter( 'get_the_excerpt', array( __CLASS__, 'filter_excerpt' ), 5, 2 );
+
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
@@ -123,6 +128,34 @@ class Locuentia_Frontend {
 		$hash = Locuentia_Detector::hash_text( $title );
 
 		return isset( $map[ $hash ] ) ? $map[ $hash ] : $title;
+	}
+
+	/**
+	 * Traduce el extracto manual si existe traducción para él.
+	 *
+	 * @param string       $excerpt Extracto (vacío si el post no tiene manual).
+	 * @param WP_Post|null $post    Post del extracto.
+	 * @return string
+	 */
+	public static function filter_excerpt( $excerpt, $post = null ) {
+		$lang = Locuentia_Router::current_language();
+		if ( '' === $lang || '' === (string) $excerpt ) {
+			return $excerpt;
+		}
+
+		$post = get_post( $post );
+		if ( ! $post || ! in_array( $post->post_type, Locuentia::post_types(), true ) ) {
+			return $excerpt;
+		}
+
+		$map = Locuentia::get_post_translations( $post->ID, $lang );
+		if ( empty( $map ) ) {
+			return $excerpt;
+		}
+
+		$hash = Locuentia_Detector::hash_text( $excerpt );
+
+		return isset( $map[ $hash ] ) ? $map[ $hash ] : $excerpt;
 	}
 
 	/**

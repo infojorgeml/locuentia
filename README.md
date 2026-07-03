@@ -8,7 +8,7 @@ Traducción manual mínima para WordPress. Sin builders, sin editores visuales: 
 
 1. Activa el plugin.
 2. Ve a **Ajustes → Locuentia**: indica el idioma en que escribes el contenido (por ejemplo `es`; si se deja vacío se usa el idioma del sitio) y los idiomas de destino separados por comas (por defecto: `en`).
-3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título incluido) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
+3. Edita cualquier entrada o página: debajo del editor aparece la caja **Traducciones** con todos los textos detectados (título, extracto manual y textos `alt` de las imágenes incluidos) y un campo para cada idioma. Cada idioma tiene además un campo **Slug traducido** opcional para que la URL también se traduzca (`/en/about-us/` en vez de `/en/sobre-nosotros/`).
 4. Guarda. La página traducida vive en la URL con prefijo de idioma, por ejemplo:
    `https://misitio.local/en/mi-pagina/` (y la portada en `https://misitio.local/en/`).
    También funciona `?locuentia_lang=CODIGO`, y es el único modo si el sitio no usa enlaces permanentes bonitos.
@@ -20,7 +20,8 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 
 ## Cómo funciona
 
-- Los textos se detectan recorriendo los nodos de texto del contenido guardado (se ignoran `script`, `style`, `code` y `pre`, y los fragmentos sin letras, como números sueltos).
+- Los textos se detectan recorriendo los nodos de texto y los atributos `alt` de las imágenes del contenido guardado (se ignoran `script`, `style`, `code` y `pre`, y los fragmentos sin letras, como números sueltos).
+- El extracto manual se traduce como un texto más; el extracto automático ya se genera a partir del contenido traducido.
 - Cada texto se identifica por un hash de su versión normalizada (espacios y tipografía unificados), y las traducciones se guardan como texto plano en el post meta `_locuentia_translations`.
 - Las URLs de idioma se resuelven duplicando las reglas de reescritura de WordPress bajo cada prefijo (`/en/…`); las reglas se regeneran solas al activar el plugin o cambiar los idiomas. Si alguna URL de idioma diera 404, guarda en Ajustes → Enlaces permanentes para regenerarlas a mano.
 - Cada URL emite etiquetas `hreflang` (original, traducciones y `x-default`). En contenido individual solo se anuncian los idiomas con alguna traducción guardada. Un idioma de destino igual al original se ignora para no duplicar contenido.
@@ -31,7 +32,7 @@ Los campos vacíos muestran el texto original (no hace falta traducirlo todo).
 
 ## Limitaciones (a propósito, para mantenerlo simple)
 
-- Solo traduce el título y el contenido del post (incluido el `<title>` de la pestaña): no traduce menús ni navegación, widgets, textos del tema ni salidas de shortcodes/bloques dinámicos.
+- Solo traduce el título, el contenido, el extracto manual y los `alt` de las imágenes del contenido (incluido el `<title>` de la pestaña): no traduce menús ni navegación, widgets, textos del tema, el `alt` de la imagen destacada ni salidas de shortcodes/bloques dinámicos.
 - El texto con formato interno (negritas, enlaces) se divide en fragmentos: cada fragmento se traduce por separado.
 - Las traducciones son texto plano (sin HTML).
 - Si cambias un texto del contenido, su traducción anterior deja de aplicarse: guarda, recarga el editor y rellena el campo del texto nuevo.

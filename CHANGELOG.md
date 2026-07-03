@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.7 — 2026-07-03
+
+- Se traduce el **extracto manual**: aparece como un texto más en la caja de traducciones y se sirve traducido en listados y feeds. El extracto automático ya se generaba del contenido traducido.
+- Se traducen los **textos alternativos (`alt`) de las imágenes** del contenido: se detectan como un texto más y se sustituyen en el atributo al servir la página.
+- Nuevo flujo de releases: `bin/build-zip.sh` genera `releases/locuentia-<versión>.zip` (un ZIP limpio por versión). `Contributors: jorgemml` en el readme.
+
 ## 0.0.6 — 2026-07-03
 
 - Renombrado a **Locuentia** (antes prototipo "Simple Translate"), siguiendo las guías del directorio de WordPress.org: nombre distintivo y prefijo único `locuentia_` en todas las clases, opciones, metas, shortcode y query var.

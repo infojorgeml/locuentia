@@ -170,6 +170,11 @@ class Locuentia_Admin {
 			$strings[ md5( $title ) ] = $title;
 		}
 
+		$excerpt = Locuentia_Detector::normalize_text( $post->post_excerpt );
+		if ( Locuentia_Detector::is_translatable( $excerpt ) ) {
+			$strings[ md5( $excerpt ) ] = $excerpt;
+		}
+
 		$content = (string) $post->post_content;
 		if ( '' !== trim( $content ) ) {
 			// El contenido clásico pasa por wpautop al renderizarse; hay que
