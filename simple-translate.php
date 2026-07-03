@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Simple Translate
  * Plugin URI:        https://github.com/infojorgeml/simple-translate
- * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción añadiendo ?lang=xx a la URL.
- * Version:           0.0.1
+ * Description:       Traducción manual mínima: detecta los textos de entradas y páginas, muestra campos para traducirlos en el editor y sirve la traducción en URLs con prefijo de idioma (/en/pagina/) o con ?lang=xx.
+ * Version:           0.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,10 +14,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SIMPLE_TRANSLATE_VERSION', '0.0.1' );
+define( 'SIMPLE_TRANSLATE_VERSION', '0.0.2' );
 define( 'SIMPLE_TRANSLATE_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-detector.php';
+require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-router.php';
 
 final class Simple_Translate {
 
@@ -25,6 +26,8 @@ final class Simple_Translate {
 	const META_KEY         = '_simple_translate_translations';
 
 	public static function init() {
+		Simple_Translate_Router::init();
+
 		if ( is_admin() ) {
 			require_once SIMPLE_TRANSLATE_DIR . 'includes/class-simple-translate-admin.php';
 			Simple_Translate_Admin::init();
@@ -96,6 +99,26 @@ final class Simple_Translate {
 
 		return $data[ $lang ];
 	}
+
+	/**
+	 * Al activar: programa la regeneración de las reglas de reescritura para
+	 * la próxima carga, cuando el plugin ya esté inicializado.
+	 */
+	public static function activate() {
+		update_option( Simple_Translate_Router::FLUSH_FLAG, 1 );
+	}
+
+	/**
+	 * Al desactivar: regenera las reglas sin las variantes de idioma.
+	 */
+	public static function deactivate() {
+		remove_filter( 'rewrite_rules_array', array( 'Simple_Translate_Router', 'add_language_rules' ) );
+		flush_rewrite_rules();
+		delete_option( Simple_Translate_Router::FLUSH_FLAG );
+	}
 }
 
 add_action( 'plugins_loaded', array( 'Simple_Translate', 'init' ) );
+
+register_activation_hook( __FILE__, array( 'Simple_Translate', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'Simple_Translate', 'deactivate' ) );

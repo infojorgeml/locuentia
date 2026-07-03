@@ -8,4 +8,5 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 delete_option( 'simple_translate_languages' );
+delete_option( 'simple_translate_flush_rewrite' );
 delete_post_meta_by_key( '_simple_translate_translations' );

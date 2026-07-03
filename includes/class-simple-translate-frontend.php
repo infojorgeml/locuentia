@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend: sirve las traducciones cuando la URL lleva ?lang=xx.
+ * Frontend: sirve las traducciones cuando la URL lleva /xx/ o ?lang=xx.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -13,32 +13,18 @@ class Simple_Translate_Frontend {
 		add_filter( 'the_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
+
+		// Los enlaces internos conservan el idioma activo al navegar.
+		add_filter( 'post_link', array( __CLASS__, 'localize_permalink' ) );
+		add_filter( 'page_link', array( __CLASS__, 'localize_permalink' ) );
+		add_filter( 'post_type_link', array( __CLASS__, 'localize_permalink' ) );
+		add_filter( 'term_link', array( __CLASS__, 'localize_permalink' ) );
+
+		// La redirección canónica de WordPress no conoce el prefijo y sacaría
+		// al visitante del idioma (p. ej. /en/ → /); se lo reponemos.
+		add_filter( 'redirect_canonical', array( __CLASS__, 'localize_canonical' ), 10, 2 );
+
 		add_shortcode( 'simple_translate_switcher', array( __CLASS__, 'render_switcher' ) );
-	}
-
-	/**
-	 * Idioma pedido vía ?lang=xx, validado contra los configurados.
-	 *
-	 * @return string Código de idioma o '' para el texto original.
-	 */
-	public static function current_language() {
-		static $cached = null;
-
-		if ( null !== $cached ) {
-			return $cached;
-		}
-
-		$cached = '';
-
-		// Lectura pública sin nonce: solo decide en qué idioma se muestra la página.
-		if ( isset( $_GET['lang'] ) && is_string( $_GET['lang'] ) ) {
-			$requested = Simple_Translate::sanitize_language_code( sanitize_key( wp_unslash( $_GET['lang'] ) ) );
-			if ( '' !== $requested && in_array( $requested, Simple_Translate::get_languages(), true ) ) {
-				$cached = $requested;
-			}
-		}
-
-		return $cached;
 	}
 
 	/**
@@ -49,7 +35,7 @@ class Simple_Translate_Frontend {
 	 * @return string
 	 */
 	public static function filter_title( $title, $post = 0 ) {
-		$lang = self::current_language();
+		$lang = Simple_Translate_Router::current_language();
 		if ( '' === $lang || ! $post ) {
 			return $title;
 		}
@@ -76,7 +62,7 @@ class Simple_Translate_Frontend {
 	 * @return string
 	 */
 	public static function filter_content( $content ) {
-		$lang = self::current_language();
+		$lang = Simple_Translate_Router::current_language();
 		if ( '' === $lang ) {
 			return $content;
 		}
@@ -95,7 +81,36 @@ class Simple_Translate_Frontend {
 	}
 
 	/**
-	 * Shortcode opcional [simple_translate_switcher]: lista de enlaces de idioma.
+	 * Prefija los permalinks con el idioma activo.
+	 *
+	 * @param string $url Permalink original.
+	 * @return string
+	 */
+	public static function localize_permalink( $url ) {
+		$lang = Simple_Translate_Router::current_language();
+
+		return '' === $lang ? $url : Simple_Translate_Router::localize_url( $url, $lang );
+	}
+
+	/**
+	 * Mantiene el prefijo de idioma en las redirecciones canónicas.
+	 *
+	 * @param string|false $redirect_url  URL canónica propuesta.
+	 * @param string       $requested_url URL solicitada.
+	 * @return string|false
+	 */
+	public static function localize_canonical( $redirect_url, $requested_url ) {
+		$lang = Simple_Translate_Router::current_language();
+		if ( '' === $lang || ! $redirect_url ) {
+			return $redirect_url;
+		}
+
+		return Simple_Translate_Router::localize_url( $redirect_url, $lang );
+	}
+
+	/**
+	 * Shortcode opcional [simple_translate_switcher]: lista de enlaces de idioma
+	 * a la página actual.
 	 *
 	 * @return string
 	 */
@@ -105,15 +120,28 @@ class Simple_Translate_Frontend {
 			return '';
 		}
 
-		$current = self::current_language();
+		$current = Simple_Translate_Router::current_language();
 
-		$items = '<li><a href="' . esc_url( remove_query_arg( 'lang' ) ) . '"'
+		// URL actual sin idioma, como base para todas las variantes.
+		$request = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			: '/';
+		$request = remove_query_arg( 'lang', $request );
+
+		$home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		if ( '' !== $home_path && 0 === strpos( $request, $home_path ) ) {
+			$request = substr( $request, strlen( $home_path ) );
+		}
+
+		$base = home_url( '/' . Simple_Translate_Router::strip_language_prefix( ltrim( $request, '/' ) ) );
+
+		$items = '<li><a href="' . esc_url( $base ) . '"'
 			. ( '' === $current ? ' style="font-weight:bold"' : '' ) . '>'
 			. esc_html__( 'Original', 'simple-translate' )
 			. '</a></li>';
 
 		foreach ( $languages as $lang ) {
-			$items .= '<li><a href="' . esc_url( add_query_arg( 'lang', $lang ) ) . '"'
+			$items .= '<li><a href="' . esc_url( Simple_Translate_Router::localize_url( $base, $lang ) ) . '"'
 				. ( $lang === $current ? ' style="font-weight:bold"' : '' ) . '>'
 				. esc_html( strtoupper( $lang ) )
 				. '</a></li>';
