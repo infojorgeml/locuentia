@@ -7,7 +7,16 @@ defined( 'ABSPATH' ) || exit;
 
 class Locuentia_Frontend {
 
+	/**
+	 * Cookie marking that the browser-language decision was already made.
+	 */
+	const SEEN_COOKIE = 'locuentia_lang_seen';
+
 	public static function init() {
+		// Priority 0: the browser-language redirect must decide before the
+		// full-page buffer starts and before slug redirects run (both on
+		// template_redirect as well).
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_browser_redirect' ), 0 );
 		// Priority 1 on the_title: the title must be compared before
 		// wptexturize touches it, which is how its hash was stored in the editor.
 		add_filter( 'the_title', array( __CLASS__, 'filter_title' ), 1, 2 );
@@ -38,6 +47,165 @@ class Locuentia_Frontend {
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
 		add_shortcode( 'locuentia_switcher', array( __CLASS__, 'render_switcher' ) );
+	}
+
+	/**
+	 * Opt-in browser-language redirect: sends first-time human visitors of
+	 * original URLs to their preferred configured language, once (302 +
+	 * 30-day cookie). Bots and visitors preferring the original language
+	 * are never redirected, and the redirect response is never cacheable.
+	 */
+	public static function maybe_browser_redirect() {
+		if ( ! get_option( Locuentia::OPTION_BROWSER_REDIRECT ) ) {
+			return;
+		}
+
+		if ( is_feed() || is_robots() || is_embed() || is_preview() || is_404() ) {
+			return;
+		}
+
+		if ( get_query_var( 'sitemap' ) || ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'GET' !== $_SERVER['REQUEST_METHOD'] ) {
+			return;
+		}
+
+		if ( self::is_bot() ) {
+			return;
+		}
+
+		if ( isset( $_COOKIE[ self::SEEN_COOKIE ] ) ) {
+			return;
+		}
+
+		// The decision is made exactly once per visitor, whether it ends in
+		// a redirect or not. Visiting a language URL first also counts as a
+		// decision, so switcher choices are always respected afterwards.
+		self::set_seen_cookie();
+
+		if ( '' !== Locuentia_Router::current_language() ) {
+			return;
+		}
+
+		$target_lang = self::preferred_language();
+		if ( '' === $target_lang ) {
+			return;
+		}
+
+		$post   = is_singular( Locuentia::post_types() ) ? get_post() : null;
+		$target = $post
+			? Locuentia_Router::permalink_for_language( $post, $target_lang )
+			: Locuentia_Router::localize_url( Locuentia_Router::current_url_unlocalized(), $target_lang );
+
+		if ( '' === $target ) {
+			return;
+		}
+
+		nocache_headers();
+		wp_safe_redirect( $target, 302 );
+		exit;
+	}
+
+	/**
+	 * Best configured language for the visitor's Accept-Language header,
+	 * or '' when the original language wins or nothing matches.
+	 *
+	 * @return string
+	 */
+	private static function preferred_language() {
+		if ( empty( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) || ! is_string( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) {
+			return '';
+		}
+
+		$header    = sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) );
+		$languages = Locuentia::get_languages();
+		$original  = Locuentia::original_language();
+
+		$preferences = array();
+
+		foreach ( explode( ',', $header ) as $part ) {
+			$bits = explode( ';', trim( $part ) );
+			$code = strtolower( trim( $bits[0] ) );
+
+			if ( '' === $code || ! preg_match( '/^[a-z0-9\-]+$/', $code ) ) {
+				continue;
+			}
+
+			$quality = 1.0;
+			if ( isset( $bits[1] ) && preg_match( '/q=([0-9.]+)/', $bits[1], $m ) ) {
+				$quality = (float) $m[1];
+			}
+
+			$preferences[] = array(
+				'code' => $code,
+				'q'    => $quality,
+			);
+		}
+
+		usort(
+			$preferences,
+			function ( $a, $b ) {
+				return $b['q'] <=> $a['q'];
+			}
+		);
+
+		foreach ( $preferences as $preference ) {
+			$code    = $preference['code'];
+			$primary = strtok( $code, '-' );
+
+			if ( in_array( $code, $languages, true ) ) {
+				return $code;
+			}
+
+			// The visitor prefers the original language: stay put.
+			if ( $code === $original || $primary === $original ) {
+				return '';
+			}
+
+			if ( in_array( $primary, $languages, true ) ) {
+				return $primary;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Rough bot detection: bots must never be language-redirected.
+	 *
+	 * @return bool
+	 */
+	private static function is_bot() {
+		if ( empty( $_SERVER['HTTP_USER_AGENT'] ) || ! is_string( $_SERVER['HTTP_USER_AGENT'] ) ) {
+			return true;
+		}
+
+		$user_agent = strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) );
+
+		return (bool) preg_match( '/bot|crawl|spider|slurp|bingpreview|lighthouse|pingdom|facebookexternalhit/', $user_agent );
+	}
+
+	/**
+	 * Marks the browser-language decision as made for 30 days.
+	 */
+	private static function set_seen_cookie() {
+		if ( headers_sent() ) {
+			return;
+		}
+
+		setcookie(
+			self::SEEN_COOKIE,
+			'1',
+			array(
+				'expires'  => time() + 30 * DAY_IN_SECONDS,
+				'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
 	}
 
 	/**

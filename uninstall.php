@@ -10,6 +10,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 delete_option( 'locuentia_languages' );
 delete_option( 'locuentia_source_language' );
 delete_option( 'locuentia_site_translations' );
+delete_option( 'locuentia_meta_keys' );
+delete_option( 'locuentia_browser_redirect' );
 delete_option( 'locuentia_flush_rewrite' );
 delete_post_meta_by_key( '_locuentia_translations' );
 

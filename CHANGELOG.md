@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.19 — 2026-07-04
+
+- **Browser language redirect** (new setting, **off by default**): first-time visitors of original URLs are 302-redirected to their preferred configured language based on `Accept-Language`. Exactly once per visitor (30-day cookie; visiting any language URL also counts as the decision, so switcher choices are respected), never for search engine bots or clients without a user agent, never when the browser prefers the original language, and the redirect response carries no-cache headers so it is never stored by page caches. Singular targets land directly on their translated slug.
+
 ## 0.0.18 — 2026-07-04
 
 - **Queue filters** on the Translate screen: language, status (untranslated / in progress / complete) and content type. Status filters evaluate the whole list and paginate manually; the row links open the editor in the filtered language.

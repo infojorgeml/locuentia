@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.18
+ * Version:           0.0.19
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.18' );
+define( 'LOCUENTIA_VERSION', '0.0.19' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -27,6 +27,7 @@ final class Locuentia {
 	const OPTION_SOURCE            = 'locuentia_source_language';
 	const OPTION_SITE_TRANSLATIONS = 'locuentia_site_translations';
 	const OPTION_META_KEYS         = 'locuentia_meta_keys';
+	const OPTION_BROWSER_REDIRECT  = 'locuentia_browser_redirect';
 	const META_KEY                 = '_locuentia_translations';
 	const SLUG_META_PREFIX         = '_locuentia_slug_';
 

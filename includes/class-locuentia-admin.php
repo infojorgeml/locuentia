@@ -281,6 +281,45 @@ class Locuentia_Admin {
 			'locuentia',
 			'locuentia_main'
 		);
+
+		register_setting(
+			'locuentia',
+			Locuentia::OPTION_BROWSER_REDIRECT,
+			array(
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox' ),
+			)
+		);
+
+		add_settings_field(
+			'locuentia_browser_redirect',
+			__( 'Browser language redirect', 'locuentia' ),
+			array( __CLASS__, 'render_browser_redirect_field' ),
+			'locuentia',
+			'locuentia_main'
+		);
+	}
+
+	/**
+	 * Normalizes a checkbox option to '1' or ''.
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return string
+	 */
+	public static function sanitize_checkbox( $value ) {
+		return $value ? '1' : '';
+	}
+
+	public static function render_browser_redirect_field() {
+		$value = get_option( Locuentia::OPTION_BROWSER_REDIRECT, '' );
+		?>
+		<label>
+			<input type="checkbox" name="<?php echo esc_attr( Locuentia::OPTION_BROWSER_REDIRECT ); ?>" value="1" <?php checked( '1', $value ); ?> />
+			<?php esc_html_e( 'Redirect first-time visitors to their browser language.', 'locuentia' ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Temporary (302) redirect, once per visitor (30-day cookie), and never for search engine bots. Visitors whose browser prefers the original language, or who already visited a language URL, are not redirected. With full-page caching the redirect only happens on uncached requests.', 'locuentia' ); ?></p>
+		<?php
 	}
 
 	/**
