@@ -207,6 +207,16 @@ class Locuentia_Admin {
 			'locuentia_main'
 		);
 
+		register_setting(
+			'locuentia',
+			Locuentia::OPTION_META_KEYS,
+			array(
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_meta_keys_option' ),
+			)
+		);
+
 		add_settings_field(
 			'locuentia_languages',
 			__( 'Target languages', 'locuentia' ),
@@ -214,6 +224,48 @@ class Locuentia_Admin {
 			'locuentia',
 			'locuentia_main'
 		);
+
+		add_settings_field(
+			'locuentia_meta_keys',
+			__( 'Translatable meta keys', 'locuentia' ),
+			array( __CLASS__, 'render_meta_keys_field' ),
+			'locuentia',
+			'locuentia_main'
+		);
+	}
+
+	/**
+	 * Normalizes the meta keys option: one clean key (or key.subkey) per line.
+	 *
+	 * @param string $value Submitted value.
+	 * @return string
+	 */
+	public static function sanitize_meta_keys_option( $value ) {
+		$keys = array();
+
+		foreach ( preg_split( '/[\r\n,]+/', (string) $value ) as $line ) {
+			$line = preg_replace( '/[^A-Za-z0-9_\-\.]/', '', trim( $line ) );
+			if ( '' !== $line ) {
+				$keys[ $line ] = $line;
+			}
+		}
+
+		return implode( "\n", $keys );
+	}
+
+	public static function render_meta_keys_field() {
+		$value = get_option( Locuentia::OPTION_META_KEYS, '' );
+		?>
+		<textarea class="large-text code" rows="4" name="<?php echo esc_attr( Locuentia::OPTION_META_KEYS ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
+		<p class="description">
+			<?php esc_html_e( 'Post meta keys whose value should be translatable, one per line. The values show up as regular texts in the translations box. Use key.subkey for one string inside an array value.', 'locuentia' ); ?>
+			<br />
+			<?php esc_html_e( 'Common examples — Yoast:', 'locuentia' ); ?> <code>_yoast_wpseo_title</code> <code>_yoast_wpseo_metadesc</code>
+			· Rank Math: <code>rank_math_title</code> <code>rank_math_description</code>
+			· SEOPress: <code>_seopress_titles_title</code> <code>_seopress_titles_desc</code>
+			· Slim SEO: <code>slim_seo.title</code> <code>slim_seo.description</code>
+		</p>
+		<?php
 	}
 
 	public static function render_source_field() {
@@ -399,6 +451,29 @@ class Locuentia_Admin {
 			$thumb_alt = Locuentia_Detector::normalize_text( get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) );
 			if ( Locuentia_Detector::is_translatable( $thumb_alt ) ) {
 				$strings[ md5( $thumb_alt ) ] = $thumb_alt;
+			}
+		}
+
+		// Configured translatable meta values (SEO titles/descriptions, custom fields).
+		foreach ( Locuentia::meta_key_map() as $meta_key => $spec ) {
+			$value = get_post_meta( $post->ID, $meta_key, true );
+
+			if ( $spec['self'] && is_string( $value ) ) {
+				$text = Locuentia_Detector::normalize_text( $value );
+				if ( Locuentia_Detector::is_translatable( $text ) ) {
+					$strings[ md5( $text ) ] = $text;
+				}
+			}
+
+			if ( ! empty( $spec['children'] ) && is_array( $value ) ) {
+				foreach ( $spec['children'] as $child ) {
+					if ( isset( $value[ $child ] ) && is_string( $value[ $child ] ) ) {
+						$text = Locuentia_Detector::normalize_text( $value[ $child ] );
+						if ( Locuentia_Detector::is_translatable( $text ) ) {
+							$strings[ md5( $text ) ] = $text;
+						}
+					}
+				}
 			}
 		}
 

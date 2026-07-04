@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.15
+ * Version:           0.0.16
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.15' );
+define( 'LOCUENTIA_VERSION', '0.0.16' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -26,6 +26,7 @@ final class Locuentia {
 	const OPTION_LANGUAGES         = 'locuentia_languages';
 	const OPTION_SOURCE            = 'locuentia_source_language';
 	const OPTION_SITE_TRANSLATIONS = 'locuentia_site_translations';
+	const OPTION_META_KEYS         = 'locuentia_meta_keys';
 	const META_KEY                 = '_locuentia_translations';
 	const SLUG_META_PREFIX         = '_locuentia_slug_';
 
@@ -158,6 +159,71 @@ final class Locuentia {
 		}
 
 		return $data[ $lang ];
+	}
+
+	/**
+	 * Configured translatable post meta keys.
+	 *
+	 * One key per line in settings (commas also accepted). Plain keys mean
+	 * the whole value is a translatable string (e.g. _yoast_wpseo_metadesc);
+	 * a key.subkey spec targets one string inside an array value (e.g.
+	 * slim_seo.title). Extensible via the locuentia_translatable_meta_keys
+	 * filter.
+	 *
+	 * @return string[]
+	 */
+	public static function translatable_meta_keys() {
+		$keys = array();
+
+		foreach ( preg_split( '/[\r\n,]+/', (string) get_option( self::OPTION_META_KEYS, '' ) ) as $line ) {
+			$line = preg_replace( '/[^A-Za-z0-9_\-\.]/', '', trim( $line ) );
+			if ( '' !== $line ) {
+				$keys[ $line ] = $line;
+			}
+		}
+
+		return apply_filters( 'locuentia_translatable_meta_keys', array_values( $keys ) );
+	}
+
+	/**
+	 * Translatable meta keys grouped by parent key.
+	 *
+	 * @return array meta_key => array( 'self' => bool, 'children' => string[] ).
+	 */
+	public static function meta_key_map() {
+		$map = array();
+
+		foreach ( self::translatable_meta_keys() as $spec ) {
+			if ( ! is_string( $spec ) || '' === $spec ) {
+				continue;
+			}
+
+			$parent = $spec;
+			$child  = '';
+
+			if ( false !== strpos( $spec, '.' ) ) {
+				list( $parent, $child ) = explode( '.', $spec, 2 );
+			}
+
+			if ( '' === $parent ) {
+				continue;
+			}
+
+			if ( ! isset( $map[ $parent ] ) ) {
+				$map[ $parent ] = array(
+					'self'     => false,
+					'children' => array(),
+				);
+			}
+
+			if ( '' === $child ) {
+				$map[ $parent ]['self'] = true;
+			} elseif ( ! in_array( $child, $map[ $parent ]['children'], true ) ) {
+				$map[ $parent ]['children'][] = $child;
+			}
+		}
+
+		return $map;
 	}
 
 	/**

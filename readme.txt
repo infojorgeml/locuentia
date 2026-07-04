@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.15
+Stable tag: 0.0.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 * Per-language sitemaps integrated into the native WordPress sitemaps (`wp-sitemap-locuentia-en-1.xml`).
 * Translation progress column in the post and page lists: see at a glance what is translated, per language.
 * A dedicated Translate screen: a queue of your content with its progress, and a focused full-width editor to translate one language at a time.
+* Translatable meta keys: expose SEO titles/descriptions or any custom field value as regular translatable texts, works with any SEO plugin (Yoast, Rank Math, SEOPress, Slim SEO…) with no plugin-specific integrations.
 * Configurable source language, independent from the site locale.
 * Clean uninstall: removes all options and stored translations.
 
@@ -61,6 +62,10 @@ No. All translations are written by you and stored in your database. The plugin 
 
 Yes, without builder-specific integrations. Replacement happens on the final served HTML, and detection fetches the page as it is actually served, so Gutenberg, Elementor, Bricks or any other builder is covered: their texts show up in the "Page texts" section of the Translate screen.
 
+= Can I translate SEO titles and meta descriptions? =
+
+Yes. Add your SEO plugin's meta keys under Locuentia → Settings → Translatable meta keys (common examples are listed right there) and their values show up as regular texts to translate. This works with any SEO plugin, since it targets the stored meta value, not the plugin itself.
+
 = Do I need to translate everything? =
 
 No. Any text without a translation is served in its original language.
@@ -70,6 +75,9 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.16 =
+* Translatable meta keys: expose SEO titles/descriptions or any custom field value as translatable texts (plain keys or key.subkey for array values), with no plugin-specific integrations.
 
 = 0.0.15 =
 * Full-page translation mode: on language URLs the final served HTML is translated as a whole, covering page builders (Bricks, Elementor…), menus, widgets and theme texts without builder-specific integrations.

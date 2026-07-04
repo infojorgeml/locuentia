@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.16 — 2026-07-04
+
+- **Translatable meta keys**: a new setting (and the `locuentia_translatable_meta_keys` filter) lists post meta keys whose values become regular translatable texts — SEO titles and descriptions, custom fields. Plain keys translate the whole string value; `key.subkey` targets one string inside an array value (e.g. `slim_seo.title`). Works with any SEO plugin without plugin-specific integrations, covering strings printed in the `<head>`.
+- Detector test suites now live in the repo (`bin/tests/`, excluded from the distribution ZIP).
+- Plugin Check: annotated the deliberate core `the_content` usage in rendered detection.
+
 ## 0.0.15 — 2026-07-03
 
 - **Full-page translation mode**: on language URLs, the final served HTML document is translated as a whole (output buffer + DOM pass), covering output that never goes through `the_content` — page builders like Bricks, menus, widgets and theme texts. Per-post translations take precedence; feeds, sitemaps and robots are untouched.

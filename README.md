@@ -29,6 +29,7 @@ Empty fields show the original text (you do not need to translate everything).
 - Translated slugs are stored in one meta per language (`_locuentia_slug_en`, …). The URL with the original slug under a prefix 301-redirects to the translated one, and internal links, hreflang and the switcher always use the translated slug.
 - The native sitemap (`wp-sitemap.xml`) includes one sitemap per language (`wp-sitemap-locuentia-en-1.xml`) with the language home page and the content that has translations, using the translated slugs. Requires the native WordPress sitemaps to be active (SEO plugins like Yoast replace them with their own).
 - With an active language, `the_title` and `the_content` are filtered replacing each text with its translation, and permalinks are prefixed to keep navigation in that language.
+- **Translatable meta keys** (Settings, or the `locuentia_translatable_meta_keys` filter): post meta values become regular translatable texts, served via a `get_post_metadata` filter — this covers strings printed in the `<head>` (SEO titles/descriptions), which the full-page pass deliberately skips. Plain keys translate string values; `key.subkey` targets one string inside an array value (e.g. `slim_seo.title`).
 - By default it works on posts and pages; extensible via the `locuentia_post_types` filter.
 
 ## Limitations (on purpose, to keep it simple)
@@ -48,3 +49,4 @@ Uninstalling the plugin removes the language options and every stored translatio
 - Repo: [github.com/infojorgeml/locuentia](https://github.com/infojorgeml/locuentia). GPL-2.0 license.
 - `bin/build-zip.sh` builds a fully clean `releases/locuentia-<version>.zip` (no development files, via the `export-ignore` entries in `.gitattributes`); one ZIP per version to test in production. The `releases/` folder is not versioned.
 - Before every release: run [Plugin Check](https://wordpress.org/plugins/plugin-check/) against the built ZIP. For the initial WordPress.org submission, rename the ZIP to `locuentia.zip`.
+- Standalone detector test suites live in `bin/tests/` (no WordPress needed): `php bin/tests/test-fragment.php && php bin/tests/test-attributes.php && php bin/tests/test-document.php`.

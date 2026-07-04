@@ -23,6 +23,11 @@ class Locuentia_Frontend {
 		// dynamic galleries); in-content <img> tags are handled by the detector.
 		add_filter( 'wp_get_attachment_image_attributes', array( __CLASS__, 'filter_image_attributes' ) );
 
+		// Serves configured meta values translated (SEO titles/descriptions…),
+		// including strings printed in the <head>, which the full-page pass
+		// deliberately does not touch.
+		add_filter( 'get_post_metadata', array( __CLASS__, 'filter_meta' ), 10, 4 );
+
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 
 		// Full-page pass: translates the final served HTML, covering output
@@ -262,6 +267,78 @@ class Locuentia_Frontend {
 		}
 
 		return $attr;
+	}
+
+	/**
+	 * Serves configured translatable meta values translated.
+	 *
+	 * @param mixed  $value     Short-circuit value (null = not short-circuited).
+	 * @param int    $object_id Post ID.
+	 * @param string $meta_key  Requested meta key.
+	 * @param bool   $single    Whether a single value was requested.
+	 * @return mixed
+	 */
+	public static function filter_meta( $value, $object_id, $meta_key, $single ) {
+		static $busy = false;
+
+		if ( $busy || null !== $value || '' === (string) $meta_key ) {
+			return $value;
+		}
+
+		$lang = Locuentia_Router::current_language();
+		if ( '' === $lang ) {
+			return $value;
+		}
+
+		$map_keys = Locuentia::meta_key_map();
+		if ( ! isset( $map_keys[ $meta_key ] ) ) {
+			return $value;
+		}
+
+		$post = get_post( $object_id );
+		if ( ! $post || ! in_array( $post->post_type, Locuentia::post_types(), true ) ) {
+			return $value;
+		}
+
+		$translations = Locuentia::get_post_translations( $object_id, $lang ) + Locuentia::get_site_translations( $lang );
+		if ( empty( $translations ) ) {
+			return $value;
+		}
+
+		// Fetch the real values with the filter disabled to avoid recursion.
+		$busy = true;
+		$raw  = get_post_meta( $object_id, $meta_key );
+		$busy = false;
+
+		if ( ! is_array( $raw ) || empty( $raw ) ) {
+			return $value;
+		}
+
+		$spec       = $map_keys[ $meta_key ];
+		$translated = array();
+
+		foreach ( $raw as $item ) {
+			if ( $spec['self'] && is_string( $item ) ) {
+				$hash = Locuentia_Detector::hash_text( $item );
+				if ( isset( $translations[ $hash ] ) ) {
+					$item = $translations[ $hash ];
+				}
+			} elseif ( ! empty( $spec['children'] ) && is_array( $item ) ) {
+				foreach ( $spec['children'] as $child ) {
+					if ( isset( $item[ $child ] ) && is_string( $item[ $child ] ) ) {
+						$hash = Locuentia_Detector::hash_text( $item[ $child ] );
+						if ( isset( $translations[ $hash ] ) ) {
+							$item[ $child ] = $translations[ $hash ];
+						}
+					}
+				}
+			}
+
+			$translated[] = $item;
+		}
+
+		// get_metadata() unwraps the first element itself when $single is true.
+		return $translated;
 	}
 
 	/**
