@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.16
+ * Version:           0.0.17
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.16' );
+define( 'LOCUENTIA_VERSION', '0.0.17' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -159,6 +159,53 @@ final class Locuentia {
 		}
 
 		return $data[ $lang ];
+	}
+
+	/**
+	 * Translation memory for a language: every stored translation on the
+	 * site (site-wide store + every post), indexed by text hash.
+	 *
+	 * Used to suggest already-made translations when the same text appears
+	 * somewhere else. Computed once per request and language.
+	 *
+	 * @param string $lang Language code.
+	 * @return array array( hash => translated text ).
+	 */
+	public static function translation_memory( $lang ) {
+		static $cache = array();
+
+		if ( isset( $cache[ $lang ] ) ) {
+			return $cache[ $lang ];
+		}
+
+		$memory = self::get_site_translations( $lang );
+
+		$ids = get_posts(
+			array(
+				'post_type'      => self::post_types(),
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				// EXISTS on an indexed key: only posts with translations.
+				'meta_key'       => self::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_compare'   => 'EXISTS',
+				'no_found_rows'  => true,
+			)
+		);
+
+		update_meta_cache( 'post', $ids );
+
+		foreach ( $ids as $post_id ) {
+			$data = get_post_meta( $post_id, self::META_KEY, true );
+			if ( is_array( $data ) && ! empty( $data[ $lang ] ) && is_array( $data[ $lang ] ) ) {
+				// += keeps the first translation found for each hash.
+				$memory += $data[ $lang ];
+			}
+		}
+
+		$cache[ $lang ] = $memory;
+
+		return $memory;
 	}
 
 	/**

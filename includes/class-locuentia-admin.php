@@ -157,7 +157,7 @@ class Locuentia_Admin {
 	}
 
 	/**
-	 * Translations box and list column styles, only where they render.
+	 * Translations box and list column assets, only where they render.
 	 *
 	 * @param string $hook_suffix Current admin screen.
 	 */
@@ -172,6 +172,36 @@ class Locuentia_Admin {
 			array(),
 			LOCUENTIA_VERSION
 		);
+
+		if ( 'edit.php' !== $hook_suffix ) {
+			wp_enqueue_script(
+				'locuentia-admin',
+				LOCUENTIA_URL . 'assets/js/admin.js',
+				array(),
+				LOCUENTIA_VERSION,
+				true
+			);
+		}
+	}
+
+	/**
+	 * Prints the translation-memory suggestion for an empty field, when the
+	 * same text was already translated somewhere else on the site.
+	 *
+	 * @param string $hash          Text hash.
+	 * @param string $current_value Current field value.
+	 * @param array  $memory        Translation memory of the language.
+	 */
+	public static function render_memory_suggestion( $hash, $current_value, array $memory ) {
+		if ( '' !== $current_value || ! isset( $memory[ $hash ] ) || '' === (string) $memory[ $hash ] ) {
+			return;
+		}
+
+		echo '<span class="locuentia-memory">'
+			. esc_html__( 'Memory suggestion:', 'locuentia' ) . ' “' . esc_html( $memory[ $hash ] ) . '” '
+			. '<button type="button" class="button-link locuentia-apply" data-locuentia-suggestion="' . esc_attr( $memory[ $hash ] ) . '">'
+			. esc_html__( 'Apply', 'locuentia' )
+			. '</button></span>';
 	}
 
 	/* ---------- Settings ---------- */
@@ -561,6 +591,8 @@ class Locuentia_Admin {
 		echo '<p class="description">' . esc_html__( 'Texts are detected from the last saved content. Leave a field empty to show the original text.', 'locuentia' ) . '</p>';
 
 		foreach ( $languages as $lang ) {
+			$memory = Locuentia::translation_memory( $lang );
+
 			/* translators: %s: uppercase language code. */
 			echo '<h3>' . esc_html( sprintf( __( 'Language: %s', 'locuentia' ), strtoupper( $lang ) ) ) . '</h3>';
 
@@ -597,7 +629,9 @@ class Locuentia_Admin {
 
 				echo '<tr>';
 				echo '<td>' . esc_html( $text ) . '</td>';
-				echo '<td><textarea rows="2" name="locuentia_tr[' . esc_attr( $lang ) . '][' . esc_attr( $hash ) . ']">' . esc_textarea( $value ) . '</textarea></td>';
+				echo '<td><textarea rows="2" name="locuentia_tr[' . esc_attr( $lang ) . '][' . esc_attr( $hash ) . ']">' . esc_textarea( $value ) . '</textarea>';
+				self::render_memory_suggestion( $hash, $value, $memory );
+				echo '</td>';
 				echo '</tr>';
 			}
 

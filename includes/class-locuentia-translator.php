@@ -164,6 +164,25 @@ class Locuentia_Translator {
 		}
 		$site_saved = Locuentia::get_site_translations( $lang );
 
+		$memory = Locuentia::translation_memory( $lang );
+
+		// Whether any empty field has a memory suggestion (enables Apply all).
+		$has_suggestions = false;
+		foreach ( $strings as $hash => $text ) {
+			if ( isset( $memory[ $hash ] ) && ! isset( $saved[ $hash ] ) ) {
+				$has_suggestions = true;
+				break;
+			}
+		}
+		if ( ! $has_suggestions ) {
+			foreach ( $page_strings as $hash => $text ) {
+				if ( isset( $memory[ $hash ] ) && ! isset( $site_saved[ $hash ] ) ) {
+					$has_suggestions = true;
+					break;
+				}
+			}
+		}
+
 		$queue_url = add_query_arg( 'page', 'locuentia', admin_url( 'admin.php' ) );
 
 		$title = get_the_title( $post );
@@ -226,6 +245,13 @@ class Locuentia_Translator {
 						</label>
 					</p>
 
+					<?php if ( $has_suggestions ) : ?>
+						<p>
+							<button type="button" class="button locuentia-apply-all"><?php esc_html_e( 'Apply all memory suggestions', 'locuentia' ); ?></button>
+							<span class="description"><?php esc_html_e( 'Fills the empty fields with translations already used elsewhere on the site. Nothing is saved until you save.', 'locuentia' ); ?></span>
+						</p>
+					<?php endif; ?>
+
 					<table class="widefat striped">
 						<thead>
 							<tr>
@@ -235,9 +261,13 @@ class Locuentia_Translator {
 						</thead>
 						<tbody>
 							<?php foreach ( $strings as $hash => $text ) : ?>
+								<?php $value = isset( $saved[ $hash ] ) ? $saved[ $hash ] : ''; ?>
 								<tr>
 									<td><?php echo esc_html( $text ); ?></td>
-									<td><textarea rows="2" name="locuentia_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( isset( $saved[ $hash ] ) ? $saved[ $hash ] : '' ); ?></textarea></td>
+									<td>
+										<textarea rows="2" name="locuentia_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
+										<?php Locuentia_Admin::render_memory_suggestion( $hash, $value, $memory ); ?>
+									</td>
 								</tr>
 							<?php endforeach; ?>
 						</tbody>
@@ -256,9 +286,13 @@ class Locuentia_Translator {
 							</thead>
 							<tbody>
 								<?php foreach ( $page_strings as $hash => $text ) : ?>
+									<?php $value = isset( $site_saved[ $hash ] ) ? $site_saved[ $hash ] : ''; ?>
 									<tr>
 										<td><?php echo esc_html( $text ); ?></td>
-										<td><textarea rows="2" name="locuentia_site_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( isset( $site_saved[ $hash ] ) ? $site_saved[ $hash ] : '' ); ?></textarea></td>
+										<td>
+											<textarea rows="2" name="locuentia_site_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
+											<?php Locuentia_Admin::render_memory_suggestion( $hash, $value, $memory ); ?>
+										</td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>

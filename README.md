@@ -30,6 +30,7 @@ Empty fields show the original text (you do not need to translate everything).
 - The native sitemap (`wp-sitemap.xml`) includes one sitemap per language (`wp-sitemap-locuentia-en-1.xml`) with the language home page and the content that has translations, using the translated slugs. Requires the native WordPress sitemaps to be active (SEO plugins like Yoast replace them with their own).
 - With an active language, `the_title` and `the_content` are filtered replacing each text with its translation, and permalinks are prefixed to keep navigation in that language.
 - **Translatable meta keys** (Settings, or the `locuentia_translatable_meta_keys` filter): post meta values become regular translatable texts, served via a `get_post_metadata` filter — this covers strings printed in the `<head>` (SEO titles/descriptions), which the full-page pass deliberately skips. Plain keys translate string values; `key.subkey` targets one string inside an array value (e.g. `slim_seo.title`).
+- **Translation memory**: every stored translation (posts + site-wide store) is indexed by text hash; empty fields whose text is already translated elsewhere show the suggestion with an Apply button, and the Translate screen has an "Apply all" — nothing is saved until you save.
 - By default it works on posts and pages; extensible via the `locuentia_post_types` filter.
 
 ## Limitations (on purpose, to keep it simple)

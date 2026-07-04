@@ -22,6 +22,18 @@
 	font-weight: 600;
 }
 
+/* Translation-memory suggestions under empty fields. */
+.locuentia-memory {
+	display: block;
+	margin-top: 2px;
+	color: #646970;
+	font-style: italic;
+}
+
+.locuentia-memory .locuentia-apply {
+	font-style: normal;
+}
+
 /* Translation progress badges in the post list tables. */
 .locuentia-badge {
 	display: inline-block;

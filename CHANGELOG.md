@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.17 — 2026-07-04
+
+- **Translation memory**: when an empty field's text was already translated somewhere else on the site (another post or the site-wide store), the field shows the suggestion with an **Apply** button — in the meta box and on the Translate screen (page texts included).
+- **Apply all memory suggestions** button on the Translate screen: fills every empty field with its suggestion in one click. Nothing is saved until you save, so review stays explicit.
+
 ## 0.0.16 — 2026-07-04
 
 - **Translatable meta keys**: a new setting (and the `locuentia_translatable_meta_keys` filter) lists post meta keys whose values become regular translatable texts — SEO titles and descriptions, custom fields. Plain keys translate the whole string value; `key.subkey` targets one string inside an array value (e.g. `slim_seo.title`). Works with any SEO plugin without plugin-specific integrations, covering strings printed in the `<head>`.
