@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.17
+Stable tag: 0.0.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 * `hreflang` tags on every URL, announcing only languages that actually have translations.
 * Per-language sitemaps integrated into the native WordPress sitemaps (`wp-sitemap-locuentia-en-1.xml`).
 * Translation progress column in the post and page lists: see at a glance what is translated, per language.
-* A dedicated Translate screen: a queue of your content with its progress, and a focused full-width editor to translate one language at a time.
+* A dedicated Translate screen: a queue of your content with its progress and language/status/type filters, plus a focused full-width editor with per-language pending counters and a "Save & translate next pending" flow.
 * Translatable meta keys: expose SEO titles/descriptions or any custom field value as regular translatable texts, works with any SEO plugin (Yoast, Rank Math, SEOPress, Slim SEO…) with no plugin-specific integrations.
 * Translation memory: texts already translated elsewhere on the site show a one-click suggestion on empty fields, with an "Apply all" button on the Translate screen. Nothing is saved until you save.
 * Configurable source language, independent from the site locale.
@@ -76,6 +76,9 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.18 =
+* Queue filters (language, status, type) on the Translate screen, pending counters on the language tabs, and a "Save & translate next pending" button to translate in a row.
 
 = 0.0.17 =
 * Translation memory: empty fields whose text was already translated elsewhere show the suggestion with an Apply button, plus an "Apply all memory suggestions" button on the Translate screen.

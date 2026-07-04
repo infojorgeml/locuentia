@@ -78,6 +78,25 @@ class Locuentia_Admin {
 	}
 
 	/**
+	 * Translation progress of a post for one language, over the post
+	 * inventory (page-level texts are site-wide and not counted here).
+	 *
+	 * @param WP_Post $post Post.
+	 * @param string  $lang Language code.
+	 * @return array array( 'done' => int, 'total' => int ).
+	 */
+	public static function translation_progress( $post, $lang ) {
+		$strings = self::detect_strings( $post );
+		$total   = count( $strings );
+		$done    = $total ? count( array_intersect_key( Locuentia::get_post_translations( $post->ID, $lang ), $strings ) ) : 0;
+
+		return array(
+			'done'  => $done,
+			'total' => $total,
+		);
+	}
+
+	/**
 	 * Prints one progress badge per language for a post: translated/total texts.
 	 *
 	 * @param WP_Post $post Post.

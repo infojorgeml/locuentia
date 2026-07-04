@@ -37,87 +37,207 @@ class Locuentia_Translator {
 	/* ---------- Queue ---------- */
 
 	/**
+	 * Post statuses listed in the queue.
+	 *
+	 * @return string[]
+	 */
+	private static function queue_statuses() {
+		return array( 'publish', 'future', 'draft', 'pending', 'private' );
+	}
+
+	/**
 	 * Renders the translation queue: all translatable content with its
-	 * per-language progress.
+	 * per-language progress, optionally filtered by language/status/type.
 	 */
 	private static function render_queue() {
 		$languages = Locuentia::get_languages();
+		$per_page  = 20;
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$paged = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		// Read-only listing filters.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$paged   = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$flang   = isset( $_GET['flang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_GET['flang'] ) ) ) : '';
+		$fstatus = isset( $_GET['fstatus'] ) ? sanitize_key( wp_unslash( $_GET['fstatus'] ) ) : '';
+		$ftype   = isset( $_GET['ftype'] ) ? sanitize_key( wp_unslash( $_GET['ftype'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		$query = new WP_Query(
-			array(
-				'post_type'      => Locuentia::post_types(),
-				'post_status'    => array( 'publish', 'future', 'draft', 'pending', 'private' ),
-				'posts_per_page' => 20,
-				'paged'          => $paged,
-				'orderby'        => 'modified',
-				'order'          => 'DESC',
-			)
-		);
+		if ( ! in_array( $flang, $languages, true ) ) {
+			$flang = '';
+		}
+		if ( ! in_array( $fstatus, array( 'untranslated', 'partial', 'complete' ), true ) ) {
+			$fstatus = '';
+		}
+		if ( ! in_array( $ftype, Locuentia::post_types(), true ) ) {
+			$ftype = '';
+		}
+
+		$post_types = '' !== $ftype ? array( $ftype ) : Locuentia::post_types();
+
+		$rows        = array();
+		$total_pages = 0;
+
+		if ( '' !== $fstatus && ! empty( $languages ) ) {
+			// Status filters evaluate the progress of every item, so the
+			// whole list is scanned and paginated manually.
+			$status_lang = '' !== $flang ? $flang : $languages[0];
+
+			$ids = get_posts(
+				array(
+					'post_type'      => $post_types,
+					'post_status'    => self::queue_statuses(),
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'orderby'        => 'modified',
+					'order'          => 'DESC',
+					'no_found_rows'  => true,
+				)
+			);
+
+			$matches = array();
+
+			foreach ( $ids as $id ) {
+				$item = get_post( $id );
+				if ( ! $item ) {
+					continue;
+				}
+
+				$progress = Locuentia_Admin::translation_progress( $item, $status_lang );
+				if ( 0 === $progress['total'] ) {
+					continue;
+				}
+
+				$state = $progress['done'] >= $progress['total'] ? 'complete' : ( $progress['done'] > 0 ? 'partial' : 'untranslated' );
+
+				if ( $state === $fstatus ) {
+					$matches[] = $item;
+				}
+			}
+
+			$total_pages = (int) ceil( count( $matches ) / $per_page );
+			$rows        = array_slice( $matches, ( $paged - 1 ) * $per_page, $per_page );
+		} else {
+			$query = new WP_Query(
+				array(
+					'post_type'      => $post_types,
+					'post_status'    => self::queue_statuses(),
+					'posts_per_page' => $per_page,
+					'paged'          => $paged,
+					'orderby'        => 'modified',
+					'order'          => 'DESC',
+				)
+			);
+
+			$rows        = $query->posts;
+			$total_pages = (int) $query->max_num_pages;
+		}
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Translate', 'locuentia' ); ?></h1>
 
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['done'] ) ) {
+				echo '<div class="notice notice-success"><p>' . esc_html__( 'All caught up — no pending content found in this language.', 'locuentia' ) . '</p></div>';
+			}
+			?>
+
 			<?php if ( empty( $languages ) ) : ?>
 				<p><?php esc_html_e( 'Set up at least one target language in the Locuentia settings.', 'locuentia' ); ?></p>
-			<?php elseif ( ! $query->have_posts() ) : ?>
-				<p><?php esc_html_e( 'No translatable content found.', 'locuentia' ); ?></p>
 			<?php else : ?>
-				<p class="description"><?php esc_html_e( 'Pick a content item to translate it. Badges show translated/total texts per language.', 'locuentia' ); ?></p>
+				<form method="get" class="locuentia-filters">
+					<input type="hidden" name="page" value="locuentia" />
 
-				<table class="widefat striped">
-					<thead>
-						<tr>
-							<th><?php esc_html_e( 'Title', 'locuentia' ); ?></th>
-							<th><?php esc_html_e( 'Type', 'locuentia' ); ?></th>
-							<th><?php esc_html_e( 'Progress', 'locuentia' ); ?></th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php
-						foreach ( $query->posts as $post ) {
-							$translate_url = add_query_arg(
-								array(
+					<label>
+						<?php esc_html_e( 'Language:', 'locuentia' ); ?>
+						<select name="flang">
+							<option value=""><?php esc_html_e( 'All languages', 'locuentia' ); ?></option>
+							<?php foreach ( $languages as $code ) : ?>
+								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $flang, $code ); ?>><?php echo esc_html( Locuentia::language_label( $code ) . ' (' . strtoupper( $code ) . ')' ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+
+					<label>
+						<?php esc_html_e( 'Status:', 'locuentia' ); ?>
+						<select name="fstatus">
+							<option value=""><?php esc_html_e( 'Any status', 'locuentia' ); ?></option>
+							<option value="untranslated" <?php selected( $fstatus, 'untranslated' ); ?>><?php esc_html_e( 'Untranslated', 'locuentia' ); ?></option>
+							<option value="partial" <?php selected( $fstatus, 'partial' ); ?>><?php esc_html_e( 'In progress', 'locuentia' ); ?></option>
+							<option value="complete" <?php selected( $fstatus, 'complete' ); ?>><?php esc_html_e( 'Complete', 'locuentia' ); ?></option>
+						</select>
+					</label>
+
+					<label>
+						<?php esc_html_e( 'Type:', 'locuentia' ); ?>
+						<select name="ftype">
+							<option value=""><?php esc_html_e( 'Any type', 'locuentia' ); ?></option>
+							<?php foreach ( Locuentia::post_types() as $type ) : ?>
+								<?php $type_object = get_post_type_object( $type ); ?>
+								<option value="<?php echo esc_attr( $type ); ?>" <?php selected( $ftype, $type ); ?>><?php echo esc_html( $type_object ? $type_object->labels->singular_name : $type ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+
+					<?php submit_button( __( 'Filter', 'locuentia' ), 'secondary', '', false ); ?>
+				</form>
+
+				<?php if ( empty( $rows ) ) : ?>
+					<p><?php esc_html_e( 'No content matches the current filters.', 'locuentia' ); ?></p>
+				<?php else : ?>
+					<p class="description"><?php esc_html_e( 'Pick a content item to translate it. Badges show translated/total texts per language.', 'locuentia' ); ?></p>
+
+					<table class="widefat striped">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Title', 'locuentia' ); ?></th>
+								<th><?php esc_html_e( 'Type', 'locuentia' ); ?></th>
+								<th><?php esc_html_e( 'Progress', 'locuentia' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php
+							foreach ( $rows as $item ) {
+								$translate_args = array(
 									'page' => 'locuentia',
-									'post' => $post->ID,
-								),
-								admin_url( 'admin.php' )
-							);
+									'post' => $item->ID,
+								);
+								if ( '' !== $flang ) {
+									$translate_args['lang'] = $flang;
+								}
+								$translate_url = add_query_arg( $translate_args, admin_url( 'admin.php' ) );
 
-							$type  = get_post_type_object( $post->post_type );
-							$title = get_the_title( $post );
-							$title = '' !== $title ? $title : __( '(no title)', 'locuentia' );
+								$type  = get_post_type_object( $item->post_type );
+								$title = get_the_title( $item );
+								$title = '' !== $title ? $title : __( '(no title)', 'locuentia' );
 
-							echo '<tr>';
-							echo '<td><strong><a href="' . esc_url( $translate_url ) . '">' . esc_html( $title ) . '</a></strong></td>';
-							echo '<td>' . esc_html( $type ? $type->labels->singular_name : $post->post_type ) . '</td>';
-							echo '<td>';
-							Locuentia_Admin::render_progress_badges( $post );
-							echo '</td>';
-							echo '</tr>';
+								echo '<tr>';
+								echo '<td><strong><a href="' . esc_url( $translate_url ) . '">' . esc_html( $title ) . '</a></strong></td>';
+								echo '<td>' . esc_html( $type ? $type->labels->singular_name : $item->post_type ) . '</td>';
+								echo '<td>';
+								Locuentia_Admin::render_progress_badges( $item );
+								echo '</td>';
+								echo '</tr>';
+							}
+							?>
+						</tbody>
+					</table>
+
+					<?php
+					if ( $total_pages > 1 ) {
+						$links = paginate_links(
+							array(
+								'base'    => add_query_arg( 'paged', '%#%' ),
+								'format'  => '',
+								'current' => $paged,
+								'total'   => $total_pages,
+							)
+						);
+						if ( $links ) {
+							echo '<p class="locuentia-pagination">' . wp_kses_post( $links ) . '</p>';
 						}
-						?>
-					</tbody>
-				</table>
-
-				<?php
-				$total_pages = (int) $query->max_num_pages;
-				if ( $total_pages > 1 ) {
-					$links = paginate_links(
-						array(
-							'base'    => add_query_arg( 'paged', '%#%' ),
-							'format'  => '',
-							'current' => $paged,
-							'total'   => $total_pages,
-						)
-					);
-					if ( $links ) {
-						echo '<p class="locuentia-pagination">' . wp_kses_post( $links ) . '</p>';
 					}
-				}
-				?>
+					?>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -223,8 +343,17 @@ class Locuentia_Translator {
 						admin_url( 'admin.php' )
 					);
 
+					// Pending texts in this language: post inventory plus the
+					// page-level texts of this page not yet translated site-wide.
+					$pending  = count( array_diff_key( $strings, Locuentia::get_post_translations( $post_id, $code ) ) );
+					$pending += count( array_diff_key( $page_strings, Locuentia::get_site_translations( $code ) ) );
+
+					$count_html = $pending > 0
+						? '<span class="locuentia-tab-count">' . (int) $pending . '</span>'
+						: '<span class="locuentia-tab-done" aria-hidden="true">✓</span>';
+
 					echo '<a href="' . esc_url( $tab_url ) . '" class="nav-tab' . ( $code === $lang ? ' nav-tab-active' : '' ) . '">'
-						. esc_html( Locuentia::language_label( $code ) . ' (' . strtoupper( $code ) . ')' )
+						. esc_html( Locuentia::language_label( $code ) . ' (' . strtoupper( $code ) . ')' ) . ' ' . $count_html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped/int parts above.
 						. '</a>';
 				}
 				?>
@@ -301,7 +430,10 @@ class Locuentia_Translator {
 						<p class="description"><?php echo esc_html( $page_error ); ?></p>
 					<?php endif; ?>
 
-					<?php submit_button( __( 'Save translations', 'locuentia' ) ); ?>
+					<p class="submit">
+						<?php submit_button( __( 'Save translations', 'locuentia' ), 'primary', 'submit', false ); ?>
+						<?php submit_button( __( 'Save & translate next pending', 'locuentia' ), 'secondary', 'locuentia_next', false ); ?>
+					</p>
 				</form>
 			<?php endif; ?>
 		</div>
@@ -391,6 +523,36 @@ class Locuentia_Translator {
 			}
 		}
 
+		if ( isset( $_POST['locuentia_next'] ) && '' !== $lang ) {
+			$next_id = self::find_next_pending( $post_id, $lang );
+
+			if ( $next_id ) {
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page'    => 'locuentia',
+							'post'    => $next_id,
+							'lang'    => $lang,
+							'updated' => 1,
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
+			}
+
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'page' => 'locuentia',
+						'done' => 1,
+					),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
 		wp_safe_redirect(
 			add_query_arg(
 				array(
@@ -403,5 +565,46 @@ class Locuentia_Translator {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Next content with pending texts in a language, starting after the
+	 * current one in queue order and wrapping around.
+	 *
+	 * @param int    $current_id Post just saved.
+	 * @param string $lang       Language code.
+	 * @return int Next post ID, or 0 when nothing is pending.
+	 */
+	public static function find_next_pending( $current_id, $lang ) {
+		$ids = get_posts(
+			array(
+				'post_type'      => Locuentia::post_types(),
+				'post_status'    => self::queue_statuses(),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+				'no_found_rows'  => true,
+			)
+		);
+
+		$position = array_search( (int) $current_id, array_map( 'intval', $ids ), true );
+		$ordered  = false === $position
+			? $ids
+			: array_merge( array_slice( $ids, $position + 1 ), array_slice( $ids, 0, $position ) );
+
+		foreach ( $ordered as $id ) {
+			$item = get_post( $id );
+			if ( ! $item || ! current_user_can( 'edit_post', $id ) ) {
+				continue;
+			}
+
+			$progress = Locuentia_Admin::translation_progress( $item, $lang );
+			if ( $progress['total'] > 0 && $progress['done'] < $progress['total'] ) {
+				return (int) $id;
+			}
+		}
+
+		return 0;
 	}
 }

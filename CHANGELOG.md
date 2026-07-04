@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.18 — 2026-07-04
+
+- **Queue filters** on the Translate screen: language, status (untranslated / in progress / complete) and content type. Status filters evaluate the whole list and paginate manually; the row links open the editor in the filtered language.
+- **Pending counters on the language tabs** of the editor: number of texts left per language (post inventory + page texts of this page), or a check mark when done.
+- **Save & translate next pending**: a second submit that saves and jumps to the next content with pending texts in that language (queue order, wrapping around), landing on the queue with an "all caught up" notice when nothing is left.
+
 ## 0.0.17 — 2026-07-04
 
 - **Translation memory**: when an empty field's text was already translated somewhere else on the site (another post or the site-wide store), the field shows the suggestion with an **Apply** button — in the meta box and on the Translate screen (page texts included).
