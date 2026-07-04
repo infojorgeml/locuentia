@@ -414,6 +414,8 @@ class Locuentia_Translator {
 						</p>
 					<?php endif; ?>
 
+					<?php Locuentia_Admin::render_orphan_notices( $post, $lang, $strings ); ?>
+
 					<table class="widefat striped">
 						<thead>
 							<tr>
@@ -735,6 +737,7 @@ class Locuentia_Translator {
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_translations().
 			Locuentia_Admin::update_translations( $post_id, wp_unslash( $_POST['locuentia_tr'] ) );
+			Locuentia_Admin::update_originals_index( $post );
 		}
 
 		if ( isset( $_POST['locuentia_site_tr'] ) && is_array( $_POST['locuentia_site_tr'] ) ) {

@@ -34,5 +34,19 @@ document.addEventListener( 'click', function ( event ) {
 		document.querySelectorAll( '.locuentia-apply' ).forEach( function ( button ) {
 			button.click();
 		} );
+
+		return;
+	}
+
+	/* Move an outdated translation to the current text it likely matches. */
+	var restore = event.target.closest ? event.target.closest( '.locuentia-restore' ) : null;
+
+	if ( restore && restore.dataset.locuentiaHash && undefined !== restore.dataset.locuentiaSuggestion ) {
+		var target = document.querySelector( 'textarea[name$="[' + restore.dataset.locuentiaHash + ']"]' );
+
+		if ( target && '' === target.value ) {
+			target.value = restore.dataset.locuentiaSuggestion;
+			target.focus();
+		}
 	}
 } );

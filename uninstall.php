@@ -12,8 +12,11 @@ delete_option( 'locuentia_source_language' );
 delete_option( 'locuentia_site_translations' );
 delete_option( 'locuentia_meta_keys' );
 delete_option( 'locuentia_browser_redirect' );
+delete_option( 'locuentia_cache_generation' );
 delete_option( 'locuentia_flush_rewrite' );
 delete_post_meta_by_key( '_locuentia_translations' );
+delete_post_meta_by_key( '_locuentia_strings_cache' );
+delete_post_meta_by_key( '_locuentia_originals' );
 
 // Translated slugs: one meta per language (_locuentia_slug_en, …),
 // including languages no longer configured. One-off bulk delete on

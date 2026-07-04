@@ -7,6 +7,15 @@ defined( 'ABSPATH' ) || exit;
 
 class Locuentia_Admin {
 
+	/**
+	 * Per-request rendered-content cache, cleared on save (post_modified
+	 * only has one-second resolution, so time-based keys are not enough
+	 * for in-request updates).
+	 *
+	 * @var array
+	 */
+	private static $rendered_cache = array();
+
 	public static function init() {
 		require_once LOCUENTIA_DIR . 'includes/class-locuentia-translator.php';
 		Locuentia_Translator::init();
@@ -14,10 +23,42 @@ class Locuentia_Admin {
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'register_settings_page' ) );
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
+		// Proactive cache invalidation on every save (priority 5, before our
+		// own save handler): post_modified only has one-second resolution,
+		// so key-based invalidation alone could serve stale strings after
+		// rapid consecutive saves.
+		add_action( 'save_post', array( __CLASS__, 'invalidate_strings_cache' ), 5 );
 		add_action( 'save_post', array( __CLASS__, 'save_post' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'show_slug_collision_notice' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'maybe_sitemap_notice' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register_list_columns' ) );
+
+		// The meta keys setting changes what detect_strings() finds.
+		add_action( 'add_option_' . Locuentia::OPTION_META_KEYS, array( __CLASS__, 'bump_cache_generation' ) );
+		add_action( 'update_option_' . Locuentia::OPTION_META_KEYS, array( __CLASS__, 'bump_cache_generation' ) );
+	}
+
+	/**
+	 * Warns on Locuentia screens when the native sitemaps are disabled
+	 * (usually by an SEO plugin), since the per-language sitemaps ride on them.
+	 */
+	public static function maybe_sitemap_notice() {
+		// In wp-admin there is always a screen; a null screen only happens
+		// outside it (CLI), where showing is harmless and keeps this testable.
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( $screen && ! in_array( $screen->base, array( 'toplevel_page_locuentia', 'locuentia_page_locuentia-settings' ), true ) ) {
+			return;
+		}
+
+		/** This filter is documented in wp-includes/sitemaps.php */
+		if ( apply_filters( 'wp_sitemaps_enabled', true ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- deliberately reading the core sitemaps toggle.
+			return;
+		}
+
+		echo '<div class="notice notice-warning"><p>'
+			. esc_html__( 'The native WordPress sitemaps are disabled on this site (usually by an SEO plugin), so Locuentia’s per-language sitemaps are not being served. hreflang tags and translations are not affected.', 'locuentia' )
+			. '</p></div>';
 	}
 
 	/**
@@ -569,6 +610,21 @@ class Locuentia_Admin {
 	 * @return array
 	 */
 	public static function detect_strings( $post ) {
+		// Cached per post: list tables, queue status filters and next-pending
+		// lookups would otherwise re-render the content on every row. The key
+		// invalidates on content changes, settings changes affecting
+		// detection (cache generation) and plugin updates. CLI/front-end
+		// contexts bypass the cache so they can never poison it.
+		$use_cache = is_admin();
+		$cache_key = $post->post_modified_gmt . '|' . (int) get_option( Locuentia::OPTION_CACHE_GENERATION, 0 ) . '|' . LOCUENTIA_VERSION;
+
+		if ( $use_cache ) {
+			$cached = get_post_meta( $post->ID, Locuentia::STRINGS_CACHE_KEY, true );
+			if ( is_array( $cached ) && isset( $cached['key'], $cached['strings'] ) && $cached['key'] === $cache_key && is_array( $cached['strings'] ) ) {
+				return $cached['strings'];
+			}
+		}
+
 		$strings = array();
 
 		$title = Locuentia_Detector::normalize_text( $post->post_title );
@@ -619,7 +675,143 @@ class Locuentia_Admin {
 			$strings = $strings + Locuentia_Detector::extract_strings( $content );
 		}
 
+		if ( $use_cache ) {
+			update_post_meta(
+				$post->ID,
+				Locuentia::STRINGS_CACHE_KEY,
+				array(
+					'key'     => $cache_key,
+					'strings' => $strings,
+				)
+			);
+		}
+
 		return $strings;
+	}
+
+	/**
+	 * Bumps the detection cache generation, invalidating every cached
+	 * strings inventory. Hooked to settings that change what is detected.
+	 */
+	public static function bump_cache_generation() {
+		update_option( Locuentia::OPTION_CACHE_GENERATION, (int) get_option( Locuentia::OPTION_CACHE_GENERATION, 0 ) + 1 );
+	}
+
+	/**
+	 * Drops the cached strings inventory of a post, and the per-request
+	 * rendered-content cache with it.
+	 *
+	 * @param int $post_id Saved post.
+	 */
+	public static function invalidate_strings_cache( $post_id ) {
+		delete_post_meta( $post_id, Locuentia::STRINGS_CACHE_KEY );
+		self::$rendered_cache = array();
+	}
+
+	/**
+	 * Keeps an index of the original texts behind saved translations, so
+	 * outdated translations can show what their original used to say.
+	 *
+	 * @param WP_Post $post Post whose translations were just saved.
+	 */
+	public static function update_originals_index( $post ) {
+		$data = get_post_meta( $post->ID, Locuentia::META_KEY, true );
+
+		if ( ! is_array( $data ) || empty( $data ) ) {
+			delete_post_meta( $post->ID, Locuentia::ORIGINALS_KEY );
+			return;
+		}
+
+		$used = array();
+		foreach ( $data as $lang_map ) {
+			if ( is_array( $lang_map ) ) {
+				$used += $lang_map;
+			}
+		}
+
+		$existing = get_post_meta( $post->ID, Locuentia::ORIGINALS_KEY, true );
+		if ( ! is_array( $existing ) ) {
+			$existing = array();
+		}
+
+		// Current texts win; older ones survive while their translation is
+		// still stored (that is exactly the orphan case).
+		$originals = array_intersect_key( self::detect_strings( $post ) + $existing, $used );
+
+		if ( empty( $originals ) ) {
+			delete_post_meta( $post->ID, Locuentia::ORIGINALS_KEY );
+		} else {
+			update_post_meta( $post->ID, Locuentia::ORIGINALS_KEY, $originals );
+		}
+	}
+
+	/**
+	 * Prints the outdated-translations warning for one language: stored
+	 * translations whose original text no longer exists, with what the
+	 * original used to say and, when confident, a one-click move to the
+	 * current text it likely corresponds to now.
+	 *
+	 * @param WP_Post $post    Post being translated.
+	 * @param string  $lang    Language code.
+	 * @param array   $strings Current inventory: array( hash => text ).
+	 */
+	public static function render_orphan_notices( $post, $lang, array $strings ) {
+		$saved   = Locuentia::get_post_translations( $post->ID, $lang );
+		$orphans = array_diff_key( $saved, $strings );
+
+		if ( empty( $orphans ) ) {
+			return;
+		}
+
+		$originals    = get_post_meta( $post->ID, Locuentia::ORIGINALS_KEY, true );
+		$originals    = is_array( $originals ) ? $originals : array();
+		$untranslated = array_diff_key( $strings, $saved );
+
+		echo '<div class="locuentia-orphans">';
+		echo '<p><strong>' . esc_html(
+			sprintf(
+				/* translators: %d: number of outdated translations. */
+				_n( '%d translation is outdated — its original text changed:', '%d translations are outdated — their original texts changed:', count( $orphans ), 'locuentia' ),
+				count( $orphans )
+			)
+		) . '</strong></p><ul>';
+
+		foreach ( $orphans as $hash => $translation ) {
+			echo '<li>';
+
+			if ( isset( $originals[ $hash ] ) ) {
+				/* translators: %s: former original text. */
+				echo esc_html( sprintf( __( 'Original was: “%s”', 'locuentia' ), $originals[ $hash ] ) ) . '<br />';
+			}
+
+			/* translators: %s: stored translation. */
+			echo esc_html( sprintf( __( 'Translation: “%s”', 'locuentia' ), $translation ) );
+
+			// Suggest the current text it most likely corresponds to now.
+			if ( isset( $originals[ $hash ] ) && ! empty( $untranslated ) ) {
+				$best_hash    = '';
+				$best_percent = 0.0;
+
+				foreach ( $untranslated as $candidate_hash => $candidate ) {
+					similar_text( $originals[ $hash ], $candidate, $percent );
+					if ( $percent > $best_percent ) {
+						$best_percent = $percent;
+						$best_hash    = $candidate_hash;
+					}
+				}
+
+				if ( '' !== $best_hash && $best_percent >= 60 ) {
+					echo '<br />' . esc_html( sprintf( /* translators: %s: current text. */ __( 'Likely corresponds now to: “%s”', 'locuentia' ), $untranslated[ $best_hash ] ) ) . ' ';
+					echo '<button type="button" class="button-link locuentia-restore" data-locuentia-hash="' . esc_attr( $best_hash ) . '" data-locuentia-suggestion="' . esc_attr( $translation ) . '">'
+						. esc_html__( 'Move translation there', 'locuentia' )
+						. '</button>';
+				}
+			}
+
+			echo '</li>';
+		}
+
+		echo '</ul><p class="description">' . esc_html__( 'These entries are removed when you save — copy or move anything you still need first.', 'locuentia' ) . '</p></div>';
 	}
 
 	/**
@@ -634,10 +826,10 @@ class Locuentia_Admin {
 	 * @return string
 	 */
 	private static function rendered_content( $post ) {
-		static $cache = array();
+		$key = $post->ID . '|' . $post->post_modified_gmt;
 
-		if ( isset( $cache[ $post->ID ] ) ) {
-			return $cache[ $post->ID ];
+		if ( isset( self::$rendered_cache[ $key ] ) ) {
+			return self::$rendered_cache[ $key ];
 		}
 
 		$html = '';
@@ -665,7 +857,7 @@ class Locuentia_Admin {
 			}
 		}
 
-		$cache[ $post->ID ] = $html;
+		self::$rendered_cache[ $key ] = $html;
 
 		return $html;
 	}
@@ -702,6 +894,8 @@ class Locuentia_Admin {
 
 			/* translators: %s: uppercase language code. */
 			echo '<h3>' . esc_html( sprintf( __( 'Language: %s', 'locuentia' ), strtoupper( $lang ) ) ) . '</h3>';
+
+			self::render_orphan_notices( $post, $lang, $strings );
 
 			$slug = Locuentia::get_translated_slug( $post->ID, $lang );
 			echo '<p><label>' . esc_html__( 'Translated slug (optional):', 'locuentia' ) . ' ';
@@ -777,6 +971,7 @@ class Locuentia_Admin {
 		if ( isset( $_POST['locuentia_tr'] ) && is_array( $_POST['locuentia_tr'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_translations().
 			self::update_translations( $post_id, wp_unslash( $_POST['locuentia_tr'] ) );
+			self::update_originals_index( $post );
 		}
 
 		if ( isset( $_POST['locuentia_slug'] ) && is_array( $_POST['locuentia_slug'] ) ) {

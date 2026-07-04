@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.22
+Stable tag: 0.0.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,7 +43,7 @@ Each text is identified by a hash of its normalized version, so detection in the
 * Text with inline formatting (bold, links) is split into fragments, each translated separately.
 * Translations are plain text (no HTML).
 * The original language always lives at the unprefixed URL.
-* If you edit a text, its previous translation stops applying: save, reload the editor and fill in the new field.
+* If you edit a text, its previous translation stops applying — the editor warns about these outdated translations, showing what the original used to say and offering a one-click move to the text it likely corresponds to now.
 * Translated slugs are validated against collisions when saving from the editor; slugs written directly to the database are not re-validated until the post is edited again.
 
 == Installation ==
@@ -78,6 +78,11 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.23 =
+* Per-post detection cache: large sites get instant list tables, queue filters and next-pending lookups.
+* Outdated translations (whose original text changed) are now shown with what the original used to say and a one-click move to the matching current text.
+* Locuentia screens warn when an SEO plugin disables the native sitemaps the per-language sitemaps ride on.
 
 = 0.0.22 =
 * Visual language picker in Settings: searchable grid with emoji flags and native names instead of typing codes.

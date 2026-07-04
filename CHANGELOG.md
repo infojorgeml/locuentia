@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.23 — 2026-07-04
+
+- **Per-post detection cache**: the strings inventory is cached in post meta and invalidated on save, on plugin updates and when detection settings change. List tables, queue status filters and next-pending lookups go from re-rendering every post to instant reads (~500× faster on warm cache).
+- **Outdated translations are now visible**: when an original text changes, its stored translation shows up in an amber warning (meta box and Translate screen) with what the original used to say, the stored translation, and — when a current text clearly matches — a one-click "Move translation there" button. A new originals index (`_locuentia_originals`) makes this possible.
+- **Sitemap notice**: Locuentia screens warn when the native WordPress sitemaps are disabled (usually by an SEO plugin), since the per-language sitemaps ride on them.
+- Fixed a latent stale-render issue when a post changed within the same request as a previous detection.
+
 ## 0.0.22 — 2026-07-04
 
 - **Visual language picker in Settings**: target languages are now chosen from a searchable grid of ~70 languages with emoji flags and native names, instead of typing codes. Codes outside the list can still be added, and saved values are never dropped.
