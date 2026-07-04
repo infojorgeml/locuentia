@@ -181,7 +181,9 @@ class Locuentia_Admin {
 	 * @param string $hook_suffix Current admin screen.
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php', 'edit.php', 'toplevel_page_locuentia' ), true ) ) {
+		$screens = array( 'post.php', 'post-new.php', 'edit.php', 'toplevel_page_locuentia', 'locuentia_page_locuentia-settings' );
+
+		if ( ! in_array( $hook_suffix, $screens, true ) ) {
 			return;
 		}
 
@@ -367,13 +369,26 @@ class Locuentia_Admin {
 	/**
 	 * Stores the option as a clean list of codes: "en, fr".
 	 *
-	 * @param string $value Submitted value.
+	 * Accepts the checkbox array from the settings UI (merged with the
+	 * "other codes" text input) or a plain comma-separated string.
+	 *
+	 * @param mixed $value Submitted value.
 	 * @return string
 	 */
 	public static function sanitize_languages_option( $value ) {
+		$parts = is_array( $value ) ? $value : preg_split( '/[\s,]+/', (string) $value );
+
+		// Extra codes typed in the free-text input of the settings UI. The
+		// options.php nonce was already verified before sanitization runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['locuentia_languages_extra'] ) && is_string( $_POST['locuentia_languages_extra'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each code is sanitized below.
+			$parts = array_merge( $parts, preg_split( '/[\s,]+/', wp_unslash( $_POST['locuentia_languages_extra'] ) ) );
+		}
+
 		$codes = array();
 
-		foreach ( explode( ',', (string) $value ) as $part ) {
+		foreach ( $parts as $part ) {
 			$code = Locuentia::sanitize_language_code( $part );
 			if ( '' !== $code ) {
 				$codes[ $code ] = $code;
@@ -384,10 +399,39 @@ class Locuentia_Admin {
 	}
 
 	public static function render_languages_field() {
-		$value = get_option( Locuentia::OPTION_LANGUAGES, 'en' );
+		$saved = Locuentia::saved_language_codes();
+		$names = Locuentia::language_names();
+
+		// Saved codes outside the known list still get a checkbox so they
+		// are never silently dropped on save.
+		$known  = array_keys( $names );
+		$extras = array_diff( $saved, $known );
+		foreach ( $extras as $extra ) {
+			$names[ $extra ] = strtoupper( $extra );
+		}
 		?>
-		<input type="text" class="regular-text" name="<?php echo esc_attr( Locuentia::OPTION_LANGUAGES ); ?>" value="<?php echo esc_attr( $value ); ?>" />
-		<p class="description"><?php esc_html_e( 'Comma-separated language codes, for example: en, fr, de.', 'locuentia' ); ?></p>
+		<input type="search" class="regular-text locuentia-language-search" placeholder="<?php esc_attr_e( 'Filter languages…', 'locuentia' ); ?>" aria-label="<?php esc_attr_e( 'Filter languages', 'locuentia' ); ?>" />
+
+		<div class="locuentia-languages-grid">
+			<?php foreach ( $names as $code => $name ) : ?>
+				<label class="locuentia-language-option">
+					<input type="checkbox" name="<?php echo esc_attr( Locuentia::OPTION_LANGUAGES ); ?>[]" value="<?php echo esc_attr( $code ); ?>" <?php checked( in_array( $code, $saved, true ) ); ?> />
+					<span class="locuentia-language-flag"><?php echo esc_html( Locuentia::language_flag( $code ) ); ?></span>
+					<?php echo esc_html( $name ); ?>
+					<code><?php echo esc_html( $code ); ?></code>
+				</label>
+			<?php endforeach; ?>
+		</div>
+
+		<p class="description"><?php esc_html_e( 'Pick the languages you want to translate into. A target language equal to the original is ignored automatically.', 'locuentia' ); ?></p>
+
+		<details class="locuentia-languages-extra">
+			<summary><?php esc_html_e( 'Add other language codes', 'locuentia' ); ?></summary>
+			<p>
+				<input type="text" class="regular-text" name="locuentia_languages_extra" value="" placeholder="lo, fy, oc" />
+				<span class="description"><?php esc_html_e( 'Comma-separated codes not in the list above; they are added on save.', 'locuentia' ); ?></span>
+			</p>
+		</details>
 		<?php
 	}
 
@@ -469,6 +513,11 @@ class Locuentia_Admin {
 						<td><?php esc_html_e( 'Native language name (Español, English…) or its code (ES, EN…).', 'locuentia' ); ?></td>
 					</tr>
 					<tr>
+						<td><code>flags</code></td>
+						<td><code>no</code> <?php esc_html_e( '(default)', 'locuentia' ); ?>, <code>yes</code></td>
+						<td><?php esc_html_e( 'Prepends the emoji flag of each language (🇬🇧 English).', 'locuentia' ); ?></td>
+					</tr>
+					<tr>
 						<td><code>hide_current</code></td>
 						<td><code>no</code> <?php esc_html_e( '(default)', 'locuentia' ); ?>, <code>yes</code></td>
 						<td><?php esc_html_e( 'Hides the language being viewed.', 'locuentia' ); ?></td>
@@ -489,8 +538,8 @@ class Locuentia_Admin {
 			<p>
 				<?php esc_html_e( 'Examples:', 'locuentia' ); ?>
 				<code>[locuentia_switcher style="dropdown"]</code>
+				<code>[locuentia_switcher style="inline" flags="yes"]</code>
 				<code>[locuentia_switcher style="inline" show="code" separator="|"]</code>
-				<code>[locuentia_switcher style="inline" hide_current="yes"]</code>
 			</p>
 
 			<p class="description"><?php esc_html_e( 'The active language item carries the locuentia-current class in case you want to style it from your theme.', 'locuentia' ); ?></p>

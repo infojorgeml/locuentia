@@ -22,11 +22,14 @@ class Locuentia_Frontend {
 		add_filter( 'the_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 
-		// Term names in document titles of archives; term names in the page
-		// body are handled by the full-page pass via the site-wide store.
-		add_filter( 'single_term_title', array( __CLASS__, 'filter_term_title' ), 1 );
-		add_filter( 'single_cat_title', array( __CLASS__, 'filter_term_title' ), 1 );
-		add_filter( 'single_tag_title', array( __CLASS__, 'filter_term_title' ), 1 );
+		// Site-wide texts outside the page body: term names in archive
+		// document titles, and the site title/tagline options. Their body
+		// occurrences are handled by the full-page pass via the same store.
+		add_filter( 'single_term_title', array( __CLASS__, 'filter_site_text' ), 1 );
+		add_filter( 'single_cat_title', array( __CLASS__, 'filter_site_text' ), 1 );
+		add_filter( 'single_tag_title', array( __CLASS__, 'filter_site_text' ), 1 );
+		add_filter( 'option_blogname', array( __CLASS__, 'filter_site_text' ) );
+		add_filter( 'option_blogdescription', array( __CLASS__, 'filter_site_text' ) );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
 
 		// Priority 5: before wp_trim_excerpt (10) generates the automatic
@@ -394,25 +397,30 @@ class Locuentia_Frontend {
 	}
 
 	/**
-	 * Translates term names (archive document titles) from the site-wide store.
+	 * Translates a site-wide text (term names, site title, tagline) from
+	 * the site-wide store.
 	 *
-	 * @param string $title Term name.
-	 * @return string
+	 * @param mixed $text Original text.
+	 * @return mixed
 	 */
-	public static function filter_term_title( $title ) {
+	public static function filter_site_text( $text ) {
+		if ( ! is_string( $text ) || '' === $text ) {
+			return $text;
+		}
+
 		$lang = Locuentia_Router::current_language();
-		if ( '' === $lang || '' === (string) $title ) {
-			return $title;
+		if ( '' === $lang ) {
+			return $text;
 		}
 
 		$map = Locuentia::get_site_translations( $lang );
 		if ( empty( $map ) ) {
-			return $title;
+			return $text;
 		}
 
-		$hash = Locuentia_Detector::hash_text( $title );
+		$hash = Locuentia_Detector::hash_text( $text );
 
-		return isset( $map[ $hash ] ) ? $map[ $hash ] : $title;
+		return isset( $map[ $hash ] ) ? $map[ $hash ] : $text;
 	}
 
 	/**
@@ -577,6 +585,7 @@ class Locuentia_Frontend {
 	 * Attributes:
 	 * - style:          list (default) | inline | dropdown
 	 * - show:           name (native name, default) | code (EN, ES…)
+	 * - flags:          yes to prepend the emoji flag of each language
 	 * - hide_current:   yes to hide the language being viewed
 	 * - separator:      text between items in list/inline (e.g. "|")
 	 * - original_label: custom label for the original language
@@ -594,6 +603,7 @@ class Locuentia_Frontend {
 			array(
 				'style'          => 'list',
 				'show'           => 'name',
+				'flags'          => 'no',
 				'hide_current'   => 'no',
 				'separator'      => '',
 				'original_label' => '',
@@ -604,6 +614,7 @@ class Locuentia_Frontend {
 
 		$style        = in_array( $atts['style'], array( 'list', 'inline', 'dropdown' ), true ) ? $atts['style'] : 'list';
 		$show         = 'code' === $atts['show'] ? 'code' : 'name';
+		$flags        = in_array( strtolower( (string) $atts['flags'] ), array( 'yes', '1', 'true' ), true );
 		$hide_current = in_array( strtolower( (string) $atts['hide_current'] ), array( 'yes', '1', 'true' ), true );
 
 		$current = Locuentia_Router::current_language();
@@ -619,6 +630,10 @@ class Locuentia_Frontend {
 			? trim( (string) $atts['original_label'] )
 			: Locuentia::language_label( Locuentia::original_language(), $show );
 
+		if ( $flags ) {
+			$original_label = Locuentia::language_flag( Locuentia::original_language() ) . ' ' . $original_label;
+		}
+
 		$items = array(
 			array(
 				'label'   => $original_label,
@@ -628,8 +643,13 @@ class Locuentia_Frontend {
 		);
 
 		foreach ( $languages as $lang ) {
+			$label = Locuentia::language_label( $lang, $show );
+			if ( $flags ) {
+				$label = Locuentia::language_flag( $lang ) . ' ' . $label;
+			}
+
 			$items[] = array(
-				'label'   => Locuentia::language_label( $lang, $show ),
+				'label'   => $label,
 				'url'     => $post
 					? Locuentia_Router::permalink_for_language( $post, $lang )
 					: Locuentia_Router::localize_url( $base, $lang ),

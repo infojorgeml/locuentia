@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.21
+ * Version:           0.0.22
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.21' );
+define( 'LOCUENTIA_VERSION', '0.0.22' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -433,6 +433,111 @@ final class Locuentia {
 		$names = self::language_names();
 
 		return isset( $names[ $code ] ) ? $names[ $code ] : strtoupper( $code );
+	}
+
+	/**
+	 * Emoji flag of a language (pragmatic language → main-country mapping,
+	 * 🌐 when a language has no clear country flag). Overridable via the
+	 * locuentia_language_flags filter.
+	 *
+	 * @param string $code Language code.
+	 * @return string
+	 */
+	public static function language_flag( $code ) {
+		$flags = apply_filters(
+			'locuentia_language_flags',
+			array(
+				'af'    => '🇿🇦',
+				'am'    => '🇪🇹',
+				'ar'    => '🇸🇦',
+				'az'    => '🇦🇿',
+				'bg'    => '🇧🇬',
+				'bn'    => '🇧🇩',
+				'cs'    => '🇨🇿',
+				'cy'    => '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+				'da'    => '🇩🇰',
+				'de'    => '🇩🇪',
+				'el'    => '🇬🇷',
+				'en'    => '🇬🇧',
+				'es'    => '🇪🇸',
+				'et'    => '🇪🇪',
+				'fa'    => '🇮🇷',
+				'fi'    => '🇫🇮',
+				'fr'    => '🇫🇷',
+				'ga'    => '🇮🇪',
+				'gu'    => '🇮🇳',
+				'he'    => '🇮🇱',
+				'hi'    => '🇮🇳',
+				'hr'    => '🇭🇷',
+				'hu'    => '🇭🇺',
+				'hy'    => '🇦🇲',
+				'id'    => '🇮🇩',
+				'is'    => '🇮🇸',
+				'it'    => '🇮🇹',
+				'ja'    => '🇯🇵',
+				'ka'    => '🇬🇪',
+				'kk'    => '🇰🇿',
+				'km'    => '🇰🇭',
+				'ko'    => '🇰🇷',
+				'lt'    => '🇱🇹',
+				'lv'    => '🇱🇻',
+				'mk'    => '🇲🇰',
+				'ml'    => '🇮🇳',
+				'mn'    => '🇲🇳',
+				'mr'    => '🇮🇳',
+				'ms'    => '🇲🇾',
+				'my'    => '🇲🇲',
+				'ne'    => '🇳🇵',
+				'nl'    => '🇳🇱',
+				'no'    => '🇳🇴',
+				'pa'    => '🇮🇳',
+				'pl'    => '🇵🇱',
+				'pt'    => '🇵🇹',
+				'pt-br' => '🇧🇷',
+				'ro'    => '🇷🇴',
+				'ru'    => '🇷🇺',
+				'si'    => '🇱🇰',
+				'sk'    => '🇸🇰',
+				'sl'    => '🇸🇮',
+				'sq'    => '🇦🇱',
+				'sr'    => '🇷🇸',
+				'sv'    => '🇸🇪',
+				'sw'    => '🇰🇪',
+				'ta'    => '🇮🇳',
+				'te'    => '🇮🇳',
+				'th'    => '🇹🇭',
+				'tr'    => '🇹🇷',
+				'uk'    => '🇺🇦',
+				'ur'    => '🇵🇰',
+				'uz'    => '🇺🇿',
+				'vi'    => '🇻🇳',
+				'zh'    => '🇨🇳',
+				'zh-cn' => '🇨🇳',
+				'zh-tw' => '🇹🇼',
+			)
+		);
+
+		return isset( $flags[ $code ] ) ? $flags[ $code ] : '🌐';
+	}
+
+	/**
+	 * Language codes stored in the languages option, unfiltered (the
+	 * original language is kept here; get_languages() excludes it at
+	 * runtime). Used by the settings UI to render the saved selection.
+	 *
+	 * @return string[]
+	 */
+	public static function saved_language_codes() {
+		$codes = array();
+
+		foreach ( explode( ',', (string) get_option( self::OPTION_LANGUAGES, 'en' ) ) as $part ) {
+			$code = self::sanitize_language_code( $part );
+			if ( '' !== $code ) {
+				$codes[ $code ] = $code;
+			}
+		}
+
+		return array_values( $codes );
 	}
 
 	/**

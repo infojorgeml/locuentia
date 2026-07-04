@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.22 — 2026-07-04
+
+- **Visual language picker in Settings**: target languages are now chosen from a searchable grid of ~70 languages with emoji flags and native names, instead of typing codes. Codes outside the list can still be added, and saved values are never dropped.
+- **Flags in the switcher**: new `flags="yes"` shortcode attribute prepends the emoji flag of each language (🇬🇧 English).
+- **Site title and tagline are translatable** from the renamed "Site texts" editor (formerly "Taxonomy terms"), covering theme headers and document titles.
+- **Search box in the translation queue**, combinable with the language/status/type filters.
+
 ## 0.0.21 — 2026-07-04
 
 - **Fix: static front page on language home URLs.** With Settings → Reading set to a static page, `/en/` fell back to the latest posts list: core only maps an "empty" query to the front page when it has no extra vars, and the language var counts as one. The language home is now resolved to the front page explicitly, and `/en/front-page-slug/` canonical-redirects to `/en/`.

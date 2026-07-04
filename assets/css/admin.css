@@ -22,6 +22,43 @@
 	font-weight: 600;
 }
 
+/* Language picker grid on the settings screen. */
+.locuentia-language-search {
+	margin-bottom: 8px;
+}
+
+.locuentia-languages-grid {
+	max-width: 900px;
+	max-height: 340px;
+	overflow-y: auto;
+	padding: 8px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	columns: 220px 4;
+}
+
+.locuentia-language-option {
+	display: block;
+	break-inside: avoid;
+	padding: 3px 0;
+}
+
+.locuentia-language-option code {
+	color: #646970;
+	font-size: 11px;
+}
+
+.locuentia-language-flag {
+	display: inline-block;
+	min-width: 1.4em;
+	text-align: center;
+}
+
+.locuentia-languages-extra {
+	margin-top: 8px;
+}
+
 /* Queue filters and language tab counters on the Translate screen. */
 .locuentia-filters {
 	display: flex;

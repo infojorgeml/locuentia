@@ -85,6 +85,7 @@ class Locuentia_Translator {
 		$flang   = isset( $_GET['flang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_GET['flang'] ) ) ) : '';
 		$fstatus = isset( $_GET['fstatus'] ) ? sanitize_key( wp_unslash( $_GET['fstatus'] ) ) : '';
 		$ftype   = isset( $_GET['ftype'] ) ? sanitize_key( wp_unslash( $_GET['ftype'] ) ) : '';
+		$fsearch = isset( $_GET['fsearch'] ) ? sanitize_text_field( wp_unslash( $_GET['fsearch'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! in_array( $flang, $languages, true ) ) {
@@ -116,6 +117,7 @@ class Locuentia_Translator {
 					'orderby'        => 'modified',
 					'order'          => 'DESC',
 					'no_found_rows'  => true,
+					's'              => $fsearch,
 				)
 			);
 
@@ -150,6 +152,7 @@ class Locuentia_Translator {
 					'paged'          => $paged,
 					'orderby'        => 'modified',
 					'order'          => 'DESC',
+					's'              => $fsearch,
 				)
 			);
 
@@ -204,9 +207,11 @@ class Locuentia_Translator {
 						</select>
 					</label>
 
+					<input type="search" name="fsearch" value="<?php echo esc_attr( $fsearch ); ?>" placeholder="<?php esc_attr_e( 'Search…', 'locuentia' ); ?>" aria-label="<?php esc_attr_e( 'Search content', 'locuentia' ); ?>" />
+
 					<?php submit_button( __( 'Filter', 'locuentia' ), 'secondary', '', false ); ?>
 
-					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'locuentia', 'view' => 'terms' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Translate taxonomy terms →', 'locuentia' ); ?></a>
+					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'locuentia', 'view' => 'terms' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Translate site texts →', 'locuentia' ); ?></a>
 				</form>
 
 				<?php if ( empty( $rows ) ) : ?>
@@ -477,7 +482,7 @@ class Locuentia_Translator {
 		$languages = Locuentia::get_languages();
 
 		if ( empty( $languages ) ) {
-			echo '<div class="wrap"><h1>' . esc_html__( 'Taxonomy terms', 'locuentia' ) . '</h1><p>' . esc_html__( 'Set up at least one target language in the Locuentia settings.', 'locuentia' ) . '</p></div>';
+			echo '<div class="wrap"><h1>' . esc_html__( 'Site texts', 'locuentia' ) . '</h1><p>' . esc_html__( 'Set up at least one target language in the Locuentia settings.', 'locuentia' ) . '</p></div>';
 			return;
 		}
 
@@ -499,8 +504,20 @@ class Locuentia_Translator {
 		);
 		$terms = is_wp_error( $terms ) ? array() : $terms;
 
-		// One row per translatable string: term names and descriptions.
+		// One row per translatable string: site identity plus term names
+		// and descriptions.
 		$rows = array();
+
+		$blogname = Locuentia_Detector::normalize_text( get_option( 'blogname' ) );
+		if ( Locuentia_Detector::is_translatable( $blogname ) ) {
+			$rows[ md5( $blogname ) ] = array( $blogname, __( 'Site title', 'locuentia' ) );
+		}
+
+		$tagline = Locuentia_Detector::normalize_text( get_option( 'blogdescription' ) );
+		if ( Locuentia_Detector::is_translatable( $tagline ) ) {
+			$rows[ md5( $tagline ) ] = array( $tagline, __( 'Tagline', 'locuentia' ) );
+		}
+
 		foreach ( $terms as $term ) {
 			$taxonomy = get_taxonomy( $term->taxonomy );
 			$label    = $taxonomy ? $taxonomy->labels->singular_name : $term->taxonomy;
@@ -532,7 +549,7 @@ class Locuentia_Translator {
 		$queue_url = add_query_arg( 'page', 'locuentia', admin_url( 'admin.php' ) );
 		?>
 		<div class="wrap locuentia-translator">
-			<h1><?php esc_html_e( 'Translate: Taxonomy terms', 'locuentia' ); ?></h1>
+			<h1><?php esc_html_e( 'Translate: Site texts', 'locuentia' ); ?></h1>
 
 			<p><a href="<?php echo esc_url( $queue_url ); ?>">&larr; <?php esc_html_e( 'Back to the list', 'locuentia' ); ?></a></p>
 
@@ -565,7 +582,7 @@ class Locuentia_Translator {
 			<?php if ( empty( $rows ) ) : ?>
 				<p><?php esc_html_e( 'No translatable terms found.', 'locuentia' ); ?></p>
 			<?php else : ?>
-				<p class="description"><?php esc_html_e( 'Term names and descriptions are saved site-wide: they apply on archives, listings, widgets and wherever the term appears.', 'locuentia' ); ?></p>
+				<p class="description"><?php esc_html_e( 'The site title, tagline and term names/descriptions are saved site-wide: they apply on archives, listings, widgets, document titles and wherever the text appears.', 'locuentia' ); ?></p>
 
 				<?php if ( count( $terms ) >= $limit ) : ?>
 					<p class="description"><?php echo esc_html( sprintf( /* translators: %d: number of terms shown. */ __( 'Showing the %d most used terms.', 'locuentia' ), $limit ) ); ?></p>

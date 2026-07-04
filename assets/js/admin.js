@@ -1,3 +1,18 @@
+/* Locuentia admin: language grid live filter on the settings screen. */
+document.addEventListener( 'input', function ( event ) {
+	var search = event.target;
+
+	if ( ! search.classList || ! search.classList.contains( 'locuentia-language-search' ) ) {
+		return;
+	}
+
+	var needle = search.value.toLowerCase();
+
+	document.querySelectorAll( '.locuentia-language-option' ).forEach( function ( option ) {
+		option.hidden = '' !== needle && -1 === option.textContent.toLowerCase().indexOf( needle );
+	} );
+} );
+
 /* Locuentia admin: apply translation-memory suggestions to empty fields. */
 document.addEventListener( 'click', function ( event ) {
 	var apply = event.target.closest ? event.target.closest( '.locuentia-apply' ) : null;

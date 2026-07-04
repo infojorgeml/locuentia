@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.21
+Stable tag: 0.0.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,11 +49,11 @@ Each text is identified by a hash of its normalized version, so detection in the
 == Installation ==
 
 1. Install and activate the plugin.
-2. Go to **Locuentia → Settings**: set the language your content is written in (for example `es`) and the target languages, comma separated (for example `en, fr`).
+2. Go to **Locuentia → Settings**: set the language your content is written in (for example `es`) and pick the target languages from the visual picker (searchable, with flags).
 3. Translate from the **Locuentia → Translate** screen (a queue of your content with a focused editor), or from the **Translations** box below the editor of any post or page.
 4. Visit the translated URL, for example `/en/my-page/`. Optionally place the `[locuentia_switcher]` shortcode wherever you want a language switcher — being a shortcode it works in any editor or builder (Gutenberg, Elementor, Bricks, classic widgets).
 
-The switcher supports display options: `style` (list, inline or dropdown), `show` (native language name or code), `hide_current`, `separator` and `original_label`. For example: `[locuentia_switcher style="dropdown"]`. The full reference lives in the Locuentia admin page.
+The switcher supports display options: `style` (list, inline or dropdown), `show` (native language name or code), `flags` (emoji flags), `hide_current`, `separator` and `original_label`. For example: `[locuentia_switcher style="inline" flags="yes"]`. The full reference lives in the Locuentia admin page.
 
 == Frequently Asked Questions ==
 
@@ -78,6 +78,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.22 =
+* Visual language picker in Settings: searchable grid with emoji flags and native names instead of typing codes.
+* New flags="yes" switcher attribute (🇬🇧 English), site title and tagline translatable from the renamed "Site texts" editor, and a search box in the translation queue.
 
 = 0.0.21 =
 * Fix: language home URLs (/en/) now serve the static front page when one is configured in Settings → Reading, instead of falling back to the latest posts list.
