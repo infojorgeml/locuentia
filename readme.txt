@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.20
+Stable tag: 0.0.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,10 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.21 =
+* Fix: language home URLs (/en/) now serve the static front page when one is configured in Settings → Reading, instead of falling back to the latest posts list.
+* hreflang and language sitemaps now account for translations stored site-wide (builder-based sites).
 
 = 0.0.20 =
 * Taxonomy terms editor on the Translate screen: term names and descriptions translated site-wide, archive titles included.

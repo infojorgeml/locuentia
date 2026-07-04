@@ -318,6 +318,15 @@ class Locuentia_Frontend {
 				}
 			}
 
+			// Builder-based content (e.g. a static Bricks front page) is
+			// translated through the site-wide store, not post meta: fall
+			// back to the languages in use on the site.
+			if ( empty( $urls ) ) {
+				foreach ( Locuentia::languages_in_use() as $lang ) {
+					$urls[ $lang ] = Locuentia_Router::permalink_for_language( $post, $lang );
+				}
+			}
+
 			$base = Locuentia_Router::permalink_for_language( $post, '' );
 		} else {
 			$base = Locuentia_Router::current_url_unlocalized( false );

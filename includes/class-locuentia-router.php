@@ -26,6 +26,12 @@ class Locuentia_Router {
 		add_filter( 'query_vars', array( __CLASS__, 'register_query_var' ) );
 		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 20 );
 
+		// Language home pages with a static front page: core only maps an
+		// "empty" query to page_on_front when it has no extra vars, and
+		// locuentia_lang counts as one, so /en/ would fall back to the posts
+		// list. Resolved here instead (priority 9, before slug resolution).
+		add_filter( 'request', array( __CLASS__, 'resolve_front_page' ), 9 );
+
 		// Resolution of translated slugs on the incoming request.
 		add_filter( 'request', array( __CLASS__, 'resolve_translated_slug' ) );
 
@@ -202,6 +208,45 @@ class Locuentia_Router {
 		$relative = self::strip_language_prefix( substr( $url, strlen( $home ) ) );
 
 		return $home . $lang . '/' . ltrim( $relative, '/' );
+	}
+
+	/**
+	 * Maps the language home page (/en/) to the static front page when one
+	 * is configured, mirroring the core "empty query → page_on_front" logic
+	 * that our language query var would otherwise prevent.
+	 *
+	 * @param array $query_vars Query vars parsed from the URL.
+	 * @return array
+	 */
+	public static function resolve_front_page( $query_vars ) {
+		if ( ! is_array( $query_vars ) || '' === self::current_language() ) {
+			return $query_vars;
+		}
+
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			return $query_vars;
+		}
+
+		$front_id = (int) get_option( 'page_on_front' );
+		if ( ! $front_id ) {
+			return $query_vars;
+		}
+
+		// Mirror core: the query must be empty apart from our language var
+		// and the pagination/preview vars core also ignores.
+		$check = $query_vars;
+		if ( isset( $check['pagename'] ) && '' === $check['pagename'] ) {
+			unset( $check['pagename'] );
+		}
+		unset( $check['embed'], $check['locuentia_lang'] );
+
+		if ( ! empty( $check ) && array_diff( array_keys( $check ), array( 'preview', 'page', 'paged', 'cpage' ) ) ) {
+			return $query_vars;
+		}
+
+		$query_vars['page_id'] = $front_id;
+
+		return $query_vars;
 	}
 
 	/**

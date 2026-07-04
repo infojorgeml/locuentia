@@ -3,7 +3,7 @@
  * Plugin Name:       Locuentia – Multilingual Translations
  * Plugin URI:        https://github.com/infojorgeml/locuentia
  * Description:       Minimal manual translations for posts and pages: translation fields in the editor, language-prefixed URLs (/en/page/), translated slugs, hreflang tags and per-language sitemaps.
- * Version:           0.0.20
+ * Version:           0.0.21
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jorge Muñoz
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOCUENTIA_VERSION', '0.0.20' );
+define( 'LOCUENTIA_VERSION', '0.0.21' );
 define( 'LOCUENTIA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOCUENTIA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -451,6 +451,17 @@ final class Locuentia {
 		}
 
 		$found = array();
+
+		// Site-wide translations count too: builder-based sites may keep
+		// every translation in the site store rather than in post meta.
+		$site = get_option( self::OPTION_SITE_TRANSLATIONS, array() );
+		if ( is_array( $site ) ) {
+			foreach ( $site as $lang => $entries ) {
+				if ( is_array( $entries ) && ! empty( $entries ) ) {
+					$found[ $lang ] = true;
+				}
+			}
+		}
 
 		$ids = get_posts(
 			array(

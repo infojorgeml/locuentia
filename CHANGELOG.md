@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.21 — 2026-07-04
+
+- **Fix: static front page on language home URLs.** With Settings → Reading set to a static page, `/en/` fell back to the latest posts list: core only maps an "empty" query to the front page when it has no extra vars, and the language var counts as one. The language home is now resolved to the front page explicitly, and `/en/front-page-slug/` canonical-redirects to `/en/`.
+- hreflang on singular content without post-level translations (e.g. builder-based pages translated through the site-wide store) now falls back to the languages in use on the site.
+- `languages_in_use()` also counts site-wide translations, so builder-only sites announce their language sitemaps and hreflang correctly.
+
 ## 0.0.20 — 2026-07-04
 
 - **Taxonomy terms**: new "Taxonomy terms" editor on the Translate screen (linked from the queue) listing the names and descriptions of the terms of public taxonomies (200 most used), with language tabs and memory suggestions. Translations are stored **site-wide**, so they apply on archives, listings, widgets and wherever the term appears.
