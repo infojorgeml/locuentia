@@ -21,6 +21,12 @@ class Locuentia_Frontend {
 		// wptexturize touches it, which is how its hash was stored in the editor.
 		add_filter( 'the_title', array( __CLASS__, 'filter_title' ), 1, 2 );
 		add_filter( 'single_post_title', array( __CLASS__, 'filter_title' ), 1, 2 );
+
+		// Term names in document titles of archives; term names in the page
+		// body are handled by the full-page pass via the site-wide store.
+		add_filter( 'single_term_title', array( __CLASS__, 'filter_term_title' ), 1 );
+		add_filter( 'single_cat_title', array( __CLASS__, 'filter_term_title' ), 1 );
+		add_filter( 'single_tag_title', array( __CLASS__, 'filter_term_title' ), 1 );
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 20 );
 
 		// Priority 5: before wp_trim_excerpt (10) generates the automatic
@@ -369,6 +375,28 @@ class Locuentia_Frontend {
 		}
 
 		$map = Locuentia::get_post_translations( $post->ID, $lang );
+		if ( empty( $map ) ) {
+			return $title;
+		}
+
+		$hash = Locuentia_Detector::hash_text( $title );
+
+		return isset( $map[ $hash ] ) ? $map[ $hash ] : $title;
+	}
+
+	/**
+	 * Translates term names (archive document titles) from the site-wide store.
+	 *
+	 * @param string $title Term name.
+	 * @return string
+	 */
+	public static function filter_term_title( $title ) {
+		$lang = Locuentia_Router::current_language();
+		if ( '' === $lang || '' === (string) $title ) {
+			return $title;
+		}
+
+		$map = Locuentia::get_site_translations( $lang );
 		if ( empty( $map ) ) {
 			return $title;
 		}

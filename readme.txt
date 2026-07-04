@@ -4,7 +4,7 @@ Tags: translation, multilingual, languages, hreflang, multilingual sitemap
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.0.19
+Stable tag: 0.0.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +28,7 @@ Locuentia is a deliberately minimal translation plugin. No page builders, no vis
 * A dedicated Translate screen: a queue of your content with its progress and language/status/type filters, plus a focused full-width editor with per-language pending counters and a "Save & translate next pending" flow.
 * Translatable meta keys: expose SEO titles/descriptions or any custom field value as regular translatable texts, works with any SEO plugin (Yoast, Rank Math, SEOPress, Slim SEO…) with no plugin-specific integrations.
 * Translation memory: texts already translated elsewhere on the site show a one-click suggestion on empty fields, with an "Apply all" button on the Translate screen. Nothing is saved until you save.
+* Taxonomy term names and descriptions are translatable from a dedicated editor, applied site-wide on archives, listings and widgets — including archive page titles.
 * Optional browser language redirect (off by default): first-time visitors are sent to their browser's language once, with search engine bots always excluded and cache-safe no-store redirects.
 * Configurable source language, independent from the site locale.
 * Clean uninstall: removes all options and stored translations.
@@ -77,6 +78,9 @@ No. Any text without a translation is served in its original language.
 No. Translations are served on virtual language-prefixed URLs backed by the same post, with correct `hreflang` and canonical redirects.
 
 == Changelog ==
+
+= 0.0.20 =
+* Taxonomy terms editor on the Translate screen: term names and descriptions translated site-wide, archive titles included.
 
 = 0.0.19 =
 * Optional browser language redirect (off by default): 302 once per visitor via a 30-day cookie, bots never redirected, no-cache redirect responses, original-language browsers stay put.

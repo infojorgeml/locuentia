@@ -12,10 +12,12 @@ class Locuentia_Translator {
 
 	public static function init() {
 		add_action( 'admin_post_locuentia_save_translation', array( __CLASS__, 'handle_save' ) );
+		add_action( 'admin_post_locuentia_save_terms', array( __CLASS__, 'handle_save_terms' ) );
 	}
 
 	/**
-	 * Router of the Locuentia top-level page: queue or per-post editor.
+	 * Router of the Locuentia top-level page: queue, per-post editor or
+	 * taxonomy terms editor.
 	 */
 	public static function render_page() {
 		if ( ! current_user_can( 'edit_posts' ) ) {
@@ -23,8 +25,15 @@ class Locuentia_Translator {
 		}
 
 		// Read-only navigation parameters.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+		$view    = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( 'terms' === $view ) {
+			self::render_terms_editor();
+			return;
+		}
 
 		if ( $post_id ) {
 			self::render_editor( $post_id );
@@ -32,6 +41,23 @@ class Locuentia_Translator {
 		}
 
 		self::render_queue();
+	}
+
+	/**
+	 * Public taxonomies whose terms are offered for translation.
+	 *
+	 * @return string[] Taxonomy names.
+	 */
+	private static function translatable_taxonomies() {
+		$taxonomies = array();
+
+		foreach ( get_object_taxonomies( Locuentia::post_types(), 'objects' ) as $taxonomy ) {
+			if ( ! empty( $taxonomy->public ) && ! empty( $taxonomy->show_ui ) ) {
+				$taxonomies[] = $taxonomy->name;
+			}
+		}
+
+		return apply_filters( 'locuentia_taxonomies', $taxonomies );
 	}
 
 	/* ---------- Queue ---------- */
@@ -179,6 +205,8 @@ class Locuentia_Translator {
 					</label>
 
 					<?php submit_button( __( 'Filter', 'locuentia' ), 'secondary', '', false ); ?>
+
+					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'locuentia', 'view' => 'terms' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Translate taxonomy terms →', 'locuentia' ); ?></a>
 				</form>
 
 				<?php if ( empty( $rows ) ) : ?>
@@ -438,6 +466,189 @@ class Locuentia_Translator {
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders the taxonomy terms editor: names and descriptions of the
+	 * terms of public taxonomies, stored site-wide so they apply on
+	 * archives, listings and widgets alike.
+	 */
+	private static function render_terms_editor() {
+		$languages = Locuentia::get_languages();
+
+		if ( empty( $languages ) ) {
+			echo '<div class="wrap"><h1>' . esc_html__( 'Taxonomy terms', 'locuentia' ) . '</h1><p>' . esc_html__( 'Set up at least one target language in the Locuentia settings.', 'locuentia' ) . '</p></div>';
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$lang = isset( $_GET['lang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_GET['lang'] ) ) ) : '';
+		if ( '' === $lang || ! in_array( $lang, $languages, true ) ) {
+			$lang = $languages[0];
+		}
+
+		$limit = 200;
+		$terms = get_terms(
+			array(
+				'taxonomy'   => self::translatable_taxonomies(),
+				'hide_empty' => false,
+				'number'     => $limit,
+				'orderby'    => 'count',
+				'order'      => 'DESC',
+			)
+		);
+		$terms = is_wp_error( $terms ) ? array() : $terms;
+
+		// One row per translatable string: term names and descriptions.
+		$rows = array();
+		foreach ( $terms as $term ) {
+			$taxonomy = get_taxonomy( $term->taxonomy );
+			$label    = $taxonomy ? $taxonomy->labels->singular_name : $term->taxonomy;
+
+			$name = Locuentia_Detector::normalize_text( $term->name );
+			if ( Locuentia_Detector::is_translatable( $name ) ) {
+				/* translators: %s: taxonomy singular name. */
+				$rows[ md5( $name ) ] = array( $name, sprintf( __( '%s · name', 'locuentia' ), $label ) );
+			}
+
+			$description = Locuentia_Detector::normalize_text( $term->description );
+			if ( Locuentia_Detector::is_translatable( $description ) ) {
+				/* translators: %s: taxonomy singular name. */
+				$rows[ md5( $description ) ] = array( $description, sprintf( __( '%s · description', 'locuentia' ), $label ) );
+			}
+		}
+
+		$site_saved = Locuentia::get_site_translations( $lang );
+		$memory     = Locuentia::translation_memory( $lang );
+
+		$has_suggestions = false;
+		foreach ( $rows as $hash => $row ) {
+			if ( isset( $memory[ $hash ] ) && ! isset( $site_saved[ $hash ] ) ) {
+				$has_suggestions = true;
+				break;
+			}
+		}
+
+		$queue_url = add_query_arg( 'page', 'locuentia', admin_url( 'admin.php' ) );
+		?>
+		<div class="wrap locuentia-translator">
+			<h1><?php esc_html_e( 'Translate: Taxonomy terms', 'locuentia' ); ?></h1>
+
+			<p><a href="<?php echo esc_url( $queue_url ); ?>">&larr; <?php esc_html_e( 'Back to the list', 'locuentia' ); ?></a></p>
+
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['updated'] ) ) {
+				echo '<div class="notice notice-success"><p>' . esc_html__( 'Translations saved.', 'locuentia' ) . '</p></div>';
+			}
+			?>
+
+			<nav class="nav-tab-wrapper">
+				<?php
+				foreach ( $languages as $code ) {
+					$tab_url = add_query_arg(
+						array(
+							'page' => 'locuentia',
+							'view' => 'terms',
+							'lang' => $code,
+						),
+						admin_url( 'admin.php' )
+					);
+
+					echo '<a href="' . esc_url( $tab_url ) . '" class="nav-tab' . ( $code === $lang ? ' nav-tab-active' : '' ) . '">'
+						. esc_html( Locuentia::language_label( $code ) . ' (' . strtoupper( $code ) . ')' )
+						. '</a>';
+				}
+				?>
+			</nav>
+
+			<?php if ( empty( $rows ) ) : ?>
+				<p><?php esc_html_e( 'No translatable terms found.', 'locuentia' ); ?></p>
+			<?php else : ?>
+				<p class="description"><?php esc_html_e( 'Term names and descriptions are saved site-wide: they apply on archives, listings, widgets and wherever the term appears.', 'locuentia' ); ?></p>
+
+				<?php if ( count( $terms ) >= $limit ) : ?>
+					<p class="description"><?php echo esc_html( sprintf( /* translators: %d: number of terms shown. */ __( 'Showing the %d most used terms.', 'locuentia' ), $limit ) ); ?></p>
+				<?php endif; ?>
+
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="locuentia_save_terms" />
+					<input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>" />
+					<?php wp_nonce_field( 'locuentia_translate_terms', 'locuentia_terms_nonce' ); ?>
+
+					<?php if ( $has_suggestions ) : ?>
+						<p>
+							<button type="button" class="button locuentia-apply-all"><?php esc_html_e( 'Apply all memory suggestions', 'locuentia' ); ?></button>
+							<span class="description"><?php esc_html_e( 'Fills the empty fields with translations already used elsewhere on the site. Nothing is saved until you save.', 'locuentia' ); ?></span>
+						</p>
+					<?php endif; ?>
+
+					<table class="widefat striped">
+						<thead>
+							<tr>
+								<th class="locuentia-col-original"><?php esc_html_e( 'Original text', 'locuentia' ); ?></th>
+								<th><?php esc_html_e( 'Translation', 'locuentia' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $rows as $hash => $row ) : ?>
+								<?php $value = isset( $site_saved[ $hash ] ) ? $site_saved[ $hash ] : ''; ?>
+								<tr>
+									<td>
+										<?php echo esc_html( $row[0] ); ?>
+										<br /><span class="description"><?php echo esc_html( $row[1] ); ?></span>
+									</td>
+									<td>
+										<textarea rows="2" name="locuentia_site_tr[<?php echo esc_attr( $lang ); ?>][<?php echo esc_attr( $hash ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
+										<?php Locuentia_Admin::render_memory_suggestion( $hash, $value, $memory ); ?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+
+					<?php submit_button( __( 'Save translations', 'locuentia' ) ); ?>
+				</form>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * admin-post.php handler for the taxonomy terms editor.
+	 */
+	public static function handle_save_terms() {
+		$nonce = isset( $_POST['locuentia_terms_nonce'] )
+			? sanitize_text_field( wp_unslash( $_POST['locuentia_terms_nonce'] ) )
+			: '';
+
+		if ( ! wp_verify_nonce( $nonce, 'locuentia_translate_terms' ) ) {
+			wp_die( esc_html__( 'The link you followed has expired.', 'locuentia' ) );
+		}
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You are not allowed to translate this content.', 'locuentia' ) );
+		}
+
+		$lang = isset( $_POST['lang'] ) ? Locuentia::sanitize_language_code( sanitize_key( wp_unslash( $_POST['lang'] ) ) ) : '';
+
+		if ( isset( $_POST['locuentia_site_tr'] ) && is_array( $_POST['locuentia_site_tr'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized item by item in update_site_translations().
+			Locuentia_Admin::update_site_translations( wp_unslash( $_POST['locuentia_site_tr'] ) );
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'locuentia',
+					'view'    => 'terms',
+					'lang'    => $lang,
+					'updated' => 1,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
 	}
 
 	/**

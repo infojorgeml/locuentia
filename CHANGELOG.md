@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.20 — 2026-07-04
+
+- **Taxonomy terms**: new "Taxonomy terms" editor on the Translate screen (linked from the queue) listing the names and descriptions of the terms of public taxonomies (200 most used), with language tabs and memory suggestions. Translations are stored **site-wide**, so they apply on archives, listings, widgets and wherever the term appears.
+- Term names in archive document titles (`<title>`) are translated via the `single_term_title`/`single_cat_title`/`single_tag_title` filters; body occurrences were already covered by the full-page pass.
+- Taxonomy list extensible via the `locuentia_taxonomies` filter.
+
 ## 0.0.19 — 2026-07-04
 
 - **Browser language redirect** (new setting, **off by default**): first-time visitors of original URLs are 302-redirected to their preferred configured language based on `Accept-Language`. Exactly once per visitor (30-day cookie; visiting any language URL also counts as the decision, so switcher choices are respected), never for search engine bots or clients without a user agent, never when the browser prefers the original language, and the redirect response carries no-cache headers so it is never stored by page caches. Singular targets land directly on their translated slug.
